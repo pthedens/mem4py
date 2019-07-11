@@ -61,4 +61,4 @@ case in `test.py`.
 mem4py extensively uses a cython version of eigen3 which is originally based on https://github.com/strohel/Ceygen.
 Many thanks to the developers to make eigen3 cython compatible.
 
-This project has received funding from the European Union’s Horizon 2020 research and innovation programme under the Marie Sklodowska-Curie grant agreement No 642682 (AWESCO)
+This project has received funding from the European Union’s Horizon 2020 research and innovation programme under the Marie Sklodowska-Curie grant agreement No 642682 (AWESCO).
