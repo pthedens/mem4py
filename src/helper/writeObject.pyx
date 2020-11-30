@@ -1,12 +1,12 @@
+# cython: profile=False, cdivision=True, boundcheck=False, wraparound=False, nonecheck=False, language_level=3
 cimport cython
 
-@cython.boundscheck(False) # turn off bounds-checking for entire function
-@cython.wraparound(False)  # turn off negative index wrapping for entire function
+
 cdef void writeVectorNode3D(double [:] u, unsigned int nnodes, str name, object fout):
 
-    cdef unsigned int n
+    cdef Py_ssize_t n
 
-    fout.write('VECTORS %s float \n' % name)
+    fout.write('VECTORS %s double \n' % name)
 
     for n in range(0, nnodes):
         ux = u[3 * (n + 1) - 3]
@@ -16,13 +16,12 @@ cdef void writeVectorNode3D(double [:] u, unsigned int nnodes, str name, object 
 
     fout.write("\n")
 
-@cython.boundscheck(False) # turn off bounds-checking for entire function
-@cython.wraparound(False)  # turn off negative index wrapping for entire function
+
 cdef void writeVectorNode2D(double [:] u, unsigned int nnodes, str name, object fout):
 
-    cdef unsigned int n
+    cdef Py_ssize_t n
 
-    fout.write('VECTORS %s float \n' % name)
+    fout.write('VECTORS %s double \n' % name)
 
     for n in range(0, nnodes):
         ux = u[2 * (n + 1) - 2]
@@ -31,13 +30,12 @@ cdef void writeVectorNode2D(double [:] u, unsigned int nnodes, str name, object 
 
     fout.write("\n")
 
-@cython.boundscheck(False) # turn off bounds-checking for entire function
-@cython.wraparound(False)  # turn off negative index wrapping for entire function
+
 cdef void writeVector2D(double [:] u, unsigned int nnodes, str name, object fout):
 
-    cdef unsigned int n
+    cdef Py_ssize_t n
 
-    fout.write('VECTORS %s float \n' % name)
+    fout.write('VECTORS %s double \n' % name)
 
     for n in range(0, nnodes):
         ux = u[2 * (n + 1) - 2]
@@ -47,13 +45,12 @@ cdef void writeVector2D(double [:] u, unsigned int nnodes, str name, object fout
 
     fout.write("\n")
 
-@cython.boundscheck(False) # turn off bounds-checking for entire function
-@cython.wraparound(False)  # turn off negative index wrapping for entire function
+
 cdef void writeVectorElement(double [:, ::1] vector, str name, unsigned int nelems , object fout):
 
-    cdef unsigned int n
+    cdef Py_ssize_t n
 
-    fout.write('VECTORS %s float \n' % name)
+    fout.write('VECTORS %s double \n' % name)
 
     for n in range(0, nelems):
 
@@ -62,13 +59,12 @@ cdef void writeVectorElement(double [:, ::1] vector, str name, unsigned int nele
 
     fout.write('\n')
 
-@cython.boundscheck(False) # turn off bounds-checking for entire function
-@cython.wraparound(False)  # turn off negative index wrapping for entire function
+
 cdef void writeScalarElement(double [:] scalar, str name, unsigned int nelems , object fout):
 
-    cdef unsigned int n
+    cdef Py_ssize_t n
 
-    fout.write('SCALARS %s float 1\n' % name)
+    fout.write('SCALARS %s double 1\n' % name)
     fout.write('LOOKUP_TABLE default \n')
 
     for n in range(0, nelems):
@@ -78,11 +74,10 @@ cdef void writeScalarElement(double [:] scalar, str name, unsigned int nelems , 
 
     fout.write('\n')
 
-@cython.boundscheck(False) # turn off bounds-checking for entire function
-@cython.wraparound(False)  # turn off negative index wrapping for entire function
+
 cdef void writeScalarElementInt(unsigned int [:] scalar, str name, unsigned int nelems , object fout):
 
-    cdef unsigned int n
+    cdef Py_ssize_t n
 
     fout.write('SCALARS %s float 1\n' % name)
     fout.write('LOOKUP_TABLE default \n')

@@ -28,12 +28,12 @@ git clone https://github.com/pthedens/mem4py.git
 4. Compile in mem4py/ with
 
 ```
-"python setup.py"
+"python setup.py build install"
 ```
 
 # Test
 
-Run `main.py` to test example cases.
+In /tutorials run `main.py` to test example cases.
 
 # Setting up your own problem
 
@@ -43,18 +43,14 @@ and the python script is used for material and solver properties.
 # Mesh:
 A surface mesh in gmsh format has to be provided in the /msh folder. 
 
-- Membrane elements are defined by a physical surface named "membrane".
+- Only 3 node triangular shells are implemeted as membrane elements.
 
-- Boundary conditions are defined on physical lines or points using
-  - "fixAll", "fixX", "fixY", "fixZ", "fixXY" and so on to constrain d.o.f. movement
-  - nodal loads [N] "fX", "fY", "fZ"
-  - edge loads [N/m] "edgeX", "edgeY", "edgeZ"
-  - pressure acting on membrane "pMembrane"
+- Boundary conditions are defined on physical surfaces, lines or points 
 
 # Material and solver properties:
 
-In a python script the properties are defined in a `dict` which is provided to the solver. Closely follow the example
-case in `test.py`.
+In a python script the properties are defined in a `dict` which is fed to the solver. Closely follow the example
+case in the tutorials folder.
 
 # Acknowledgments
 

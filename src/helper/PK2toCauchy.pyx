@@ -1,27 +1,28 @@
+# cython: profile=False, cdivision=True, boundcheck=False, wraparound=False, nonecheck=False, language_level=3
 import numpy as np
 cimport numpy as np
 cimport cython
 
-from src.helper.area cimport areaSingle
-from src.ceygen.math cimport dot_mm
+from mem4py.helper.area cimport areaSingle
+from mem4py.ceygen.ceygenMath cimport dot_mm
+
 
 
 cdef extern from "math.h":
     double sqrt(double m)
 
 
-@cython.boundscheck(False) # turn off bounds-checking for entire function
-@cython.wraparound(False)  # turn off negative index wrapping for entire function
-cdef void PK2toCauchy(double [:] X,
-                      double [:] Y,
-                      double [:] Z,
-                      int [:, ::1] N,
-                      unsigned int el,
-                      double J11,
-                      double J12,
-                      double J22,
-                      double [:, :] PK2,
-                      double [:] cauchyLocal):
+cdef int PK2toCauchy(double [:] X,
+                     double [:] Y,
+                     double [:] Z,
+                     double J11,
+                     double J22,
+                     double J12,
+                     int [:, ::1] N,
+                     unsigned int el,
+                     double A0,
+                     double [:, :] PK2,
+                     double [:] cauchyLocal) except -1:
 
     """
     Convert second Piola-Kirchhoff stress tensor into Cauchy stress in Voigt form
@@ -89,6 +90,7 @@ cdef void PK2toCauchy(double [:] X,
     dot_mm(PK2, F.T, temp)
     dot_mm(F, temp, cauchyTensor)
 
-    cauchyLocal[0] = cauchyTensor[0, 0] / detJ
-    cauchyLocal[1] = cauchyTensor[1, 1] / detJ
-    cauchyLocal[2] = cauchyTensor[0, 1] / detJ
+    cauchyLocal[0] = cauchyTensor[0, 0]
+    cauchyLocal[1] = cauchyTensor[1, 1]
+    cauchyLocal[2] = cauchyTensor[0, 1]
+    

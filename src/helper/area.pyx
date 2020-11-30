@@ -1,11 +1,10 @@
+# cython: profile=False, cdivision=True, boundcheck=False, wraparound=False, nonecheck=False, language_level=3
 cimport cython
 
 cdef extern from "math.h":
     double sqrt(double m)
 
 # Compute the area and normal vector of given triangle
-@cython.boundscheck(False) # turn off bounds-checking for entire function
-@cython.wraparound(False)  # turn off negative index wrapping for entire function
 cdef void area(double [:] X,
                double [:] Y,
                double [:] Z,
@@ -31,8 +30,6 @@ cdef void area(double [:] X,
                                  (X1 * Y2 - X2 * Y1) * (X1 * Y2 - X2 * Y1))
 
 
-@cython.boundscheck(False) # turn off bounds-checking for entire function
-@cython.wraparound(False)  # turn off negative index wrapping for entire function
 cdef void areaSingle(double [:] X,
                      double [:] Y,
                      double [:] Z,

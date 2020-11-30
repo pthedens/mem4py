@@ -1,3 +1,4 @@
+# cython: profile=False, cdivision=True, boundcheck=False, wraparound=False, nonecheck=False, language_level=3
 cdef void writeVector2D(double [:], unsigned int, str, object)
 
 

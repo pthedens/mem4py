@@ -5,7 +5,6 @@
 
 from cython cimport view
 
-
 cdef inline str get_format(dtype *dummy):
     """
     This function must return Type code for all data types in `dtype` as described in

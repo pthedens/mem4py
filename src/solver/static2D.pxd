@@ -1,1 +1,0 @@
-cdef int static2D(object data) except -1

@@ -9,7 +9,7 @@
 
 from libcpp cimport bool
 
-from src.ceygen.dtype cimport dtype
+from dtype cimport dtype
 
 
 cdef extern from "eigen_cpp.h":

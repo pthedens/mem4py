@@ -1,19 +1,19 @@
+# cython: profile=False, cdivision=True, boundcheck=False, wraparound=False, nonecheck=False, language_level=3
 import numpy as np
 cimport numpy as np
 cimport cython
-
 from scipy.sparse import spdiags
 
-@cython.boundscheck(False) # turn off bounds-checking for entire function
-@cython.wraparound(False)  # turn off negative index wrapping for entire function
+
 cdef initialiseDirichletBC(unsigned int [:] fixedBCNodes,
                            unsigned int dim):
 
-    # TODO: Exception of no dirichlet BC is defined
-
     # Count total number of fixed dofs and their node number
-    cdef np.ndarray[unsigned int] npFixedBC = np.asarray(fixedBCNodes)
-    cdef unsigned int i, length
+    cdef:
+        unsigned int length
+        Py_ssize_t i
+
+    npFixedBC = np.asarray(fixedBCNodes)
 
     # 2D or 3D
     if dim == 2:
@@ -58,55 +58,13 @@ cdef initialiseDirichletBC(unsigned int [:] fixedBCNodes,
 
         length = len(fixX) + len(fixY) + len(fixZ)
         if length == 0:
-            raise Warning("No Dirichlet boundary conditions found.")
+            print("Warning: No homogeneous Dirichlet boundary conditions found.")
 
         dofFixed = np.sort(np.hstack((fixX, fixY, fixZ)))
-
-    # # Follower loads - which elements get load stiffness matrix KL
-    # if self.followerLoad is True:
-    #
-    #     temp = []
-    #
-    #     # pressure on edge
-    #     ind = np.where(self.loadedEdges[:, 0] == 5)[0]
-    #
-    #     # loop through edges and find nodes and corresponding element they belong to
-    #     for i, edge in enumerate(ind):
-    #
-    #         # nodal indices of edge (already defined counter-clockwise)
-    #         indEdge = self.loadedEdges[edge, 1:]
-    #
-    #         # edge in element
-    #         logicID = np.reshape(np.in1d(self.N[:, 1:], indEdge), (np.size(self.N, 0), 3))
-    #         elementID = np.where(np.sum(logicID, axis=1) == 2)
-    #
-    #         temp = np.append(temp, int(elementID[0]))
-    #         temp = np.append(temp, indEdge)
-    #
-    #         if np.array_equal(logicID[elementID][0], np.array([True, True, False])):
-    #             temp = np.append(temp, 0)
-    #         elif np.array_equal(logicID[elementID][0], np.array([False, True, True])):
-    #             temp = np.append(temp, 1)
-    #         elif np.array_equal(logicID[elementID][0], np.array([True, False, True])):
-    #             temp = np.append(temp, 2)
-    #
-    #         temp = np.append(temp, int(i))
-    #
-    #     temp = np.asarray(temp, dtype=int)
-    #
-    #     # FLelems:
-    #     # 0: element ID
-    #     # 1: nodes 1
-    #     # 2: nodes 2
-    #     # 3: edge ID (0 = [1, 2], 1 = [2, 3], 2 = [3, 1])
-    #     # 4: loadedEdges ID
-    #     self.FLelems = np.reshape(temp, (len(ind), 5))
 
     return dofFixed
 
 
-@cython.boundscheck(False) # turn off bounds-checking for entire function
-@cython.wraparound(False)  # turn off negative index wrapping for entire function
 cdef void initialiseLoadBC(int [:, ::1] N,
                            unsigned int [:] loadedBCNodes,
                            unsigned int dim,
@@ -188,23 +146,19 @@ cdef void initialiseLoadBC(int [:, ::1] N,
         dofLoadtype = np.empty(1, dtype=np.intc)
 
         print("test all loads for 3D in initialiseLoadBC")
-        quit(1)
+        assert(0)
 
 
-@cython.boundscheck(False) # turn off bounds-checking for entire function
-@cython.wraparound(False)  # turn off negative index wrapping for entire function
-cdef void correctBC3D(double [:] R,
-                      int [:] dofFixed):
+cdef void correctBC(double [:] R,
+                    int [:] dofFixed):
 
-    cdef unsigned int i
+    cdef Py_ssize_t i
 
     for i in dofFixed:
 
         R[i] = 0
 
 
-@cython.boundscheck(False) # turn off bounds-checking for entire function
-@cython.wraparound(False)  # turn off negative index wrapping for entire function
 cdef object dirichlet_zero_matrix_modification(object matrix,
                                                int [:] dirichlet_zero_dofs):
     """Enforces dirichlet zero B.C.'s by zeroing-out rows and columns 
@@ -223,7 +177,7 @@ cdef object dirichlet_zero_matrix_modification(object matrix,
     I_interior = spdiags(chi_interior, [0], N, N).tocsc()
 
     chi_boundary = np.zeros(N)
-    chi_boundary[zdof] = 1.0
+    chi_boundary[zdof] = 1.
     I_boundary = spdiags(chi_boundary, [0], N, N).tocsc()
 
     matrix_modified = I_interior * matrix * I_interior + I_boundary

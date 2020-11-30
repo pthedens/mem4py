@@ -1,22 +1,15 @@
+# cython: profile=False, cdivision=True, boundcheck=False, wraparound=False, nonecheck=False, language_level=3
 import numpy as np
 cimport numpy as np
 cimport cython
 
-from src.materialModels.StVenantIso cimport CmatStVenantIsotropic
-
-from src.helper.PK2toCauchy cimport PK2toCauchy
-
-from src.elements.membrane3D cimport membrane3DStrain
-from src.elements.membrane3D cimport membrane3DStress
-
-from src.elements.membrane2D cimport membrane2DStrain
-from src.elements.membrane2D cimport membrane2DStress
-
-from src.elements.bar3D cimport bar3DCauchyStress
-
-from src.elements.bar2D cimport bar2DCauchyStress
-
-from src.ceygen.math cimport dot_mv
+from mem4py.helper.PK2toCauchy cimport PK2toCauchy
+from mem4py.elements.membrane cimport membrane2DStrain
+from mem4py.elements.membrane cimport membrane3DStrain
+from mem4py.elements.membrane cimport membraneStress
+from mem4py.elements.membrane cimport membraneWrinklingJarasjarungkiat
+from mem4py.elements.cable cimport cable2DCauchyStress
+from mem4py.elements.cable cimport cable3DCauchyStress
 
 
 cdef extern from "math.h":
@@ -26,31 +19,42 @@ cdef extern from "math.h":
     double sin(double m)
 
 
-@cython.boundscheck(False) # turn off bounds-checking for entire function
-@cython.wraparound(False)  # turn off negative index wrapping for entire function
-cdef int computeStress2D(double [:] X,
-                          double [:] Y,
-                          int [:, ::1] NMem,
-                          int [:, ::1] NBar,
-                          unsigned int nelemsBar,
-                          unsigned int nelemsMem,
-                          double [:] J11Vec,
-                          double [:] J12Vec,
-                          double [:] J22Vec,
-                          double EMem,
-                          double poisson,
-                          double EBar,
-                          double areaBar,
-                          double [:, ::1] S,
-                          double [:, ::1] Sp,
-                          double [:, ::1] Ep,
-                          double [:, ::1] Eelastic,
-                          double [:] thetaVec,
-                          double [:] VMS,
-                          double [:] areaVec,
-                          double [:] L0,
-                          double [:, ::1] Ew,
-                          unsigned int [:] state) except -1:
+cdef int computeStress(double [:] X,
+                       double [:] Y,
+                       double [:] Z,
+                       int [:, ::1] NMem,
+                       int [:, ::1] NCable,
+                       unsigned int nelemsCable,
+                       unsigned int nelemsMem,
+                       long double [:] J11Vec,
+                       long double [:] J12Vec,
+                       long double [:] J22Vec,
+                       double [:] E_mod_3,
+                       double [:] nu,
+                       double [:] E_mod_2,
+                       double [:] area2,
+                       double [:, ::1] S,
+                       double [:, ::1] cauchy,
+                       double [:] sigma_cable,
+                       double [:] S1,
+                       double [:] S2,
+                       double [:] E1,
+                       double [:] E2,
+                       double [:, ::1] E,
+                       double [:] eps_cable,
+                       double [:] thetaVec,
+                       double [:] VMS,
+                       double [:] area3,
+                       double [:] L0,
+                       double [:, ::1] Ew,
+                       unsigned int [:] state_cable,
+                       unsigned int [:] state_mem,
+                       unsigned int wrinkling,
+                       unsigned int dim,
+                       double [:] P,
+                       double [:] alpha_array,
+                       double sigma_max,
+                       str wrinkling_model) except -1:
     """
     
     :param X:           X-coordinates (current configuration)
@@ -64,20 +68,23 @@ cdef int computeStress2D(double [:] X,
     :param E:           Young's modulus
     :param poisson:     Poisson's ratio
     :param S:           Cauchy stress matrix (sigmaxx, sigmayy, tauxy)
-    :param Sp:          principal stress matrix (S1, S2, phi)
-    :param Eelastic:    strain matrix in Voigt form (Exx, Eyy, Exy)
+    :param Sp:          principal stress matrix (S1, S2, S_cable)
+    :param E:    strain matrix in Voigt form (Exx, Eyy, Exy)
     :param thetaVec:    angle between local and fibre axis
-    :param areaVec:     element areas
+    :param area3:     element areas
     
     :return:            void, stress and strain vectors are filled in memory view
     """
 
     cdef:
 
-        unsigned int el
-        double S1, S2, theta, strainBar, stressBar
+        Py_ssize_t el, i
 
-        unsigned int [:] allDofMem = np.empty(6, dtype=np.uintc)
+        double S1_element, S2_element, theta, stressCable, c, s
+        double strainCable
+
+        unsigned int [:] allDofMem = np.empty(3 * dim, dtype=np.uintc)
+
         double [:] SFibre = np.zeros(3, dtype=np.double)
         double [:] SLocal = np.zeros(3, dtype=np.double)
         double [:] ELocal = np.zeros(3, dtype=np.double)
@@ -85,58 +92,77 @@ cdef int computeStress2D(double [:] X,
         double [:] ETotal = np.zeros(3, dtype=np.double)
         double [:] cauchyLocal = np.zeros(3, dtype=np.double)
 
-        double [:, :] Cmat = np.zeros((3, 3), dtype=np.double)
         double [:, :] PK2 = np.empty((2, 2), dtype=np.double)
-        double [:, :] T = np.empty((3, 3), dtype=np.double)
 
-        double [:] Z = np.zeros(len(X), dtype=np.double)
+    if dim == 2:
 
+        for el in range(nelemsCable):
 
-    # constitutive matrix
-    CmatStVenantIsotropic(EMem, poisson, Cmat)
+             # if 0 -> bar element, if 1 -> cable element
+            wrinkling = NCable[el, 3]
 
-    for el in range(nelemsBar):
+            cable2DCauchyStress(X, Y, NCable, L0[el], E_mod_2[el], &strainCable,
+                                &stressCable, el, wrinkling)
 
-        bar2DCauchyStress(X, Y, NBar, L0[el], EBar, &strainBar, &stressBar, el)
+            eps_cable[el] = strainCable
 
-        Eelastic[el, 0] = strainBar
-        Ep[el, 0] = strainBar
+            sigma_cable[el] = stressCable
 
-        S[el, 0] = stressBar
-        Sp[el, 0] = stressBar
+    elif dim == 3:
+
+        for el in range(nelemsCable):
+
+            # if 0 -> bar element, if 1 -> cable element
+            wrinkling = NCable[el, 3]
+
+            cable3DCauchyStress(X, Y, Z, NCable, L0[el], E_mod_2[el], &strainCable,
+                                &stressCable, el, wrinkling)
+
+            eps_cable[el] = strainCable
+
+            sigma_cable[el] = stressCable
+
+            if wrinkling == 1 and stressCable <= 0:
+
+                state_cable[el] = 0
+
+            else:
+
+                state_cable[el] = 2
+
 
     for el in range(nelemsMem):
 
-        # compute elastic strain and element dofs
-        membrane2DStrain(X, Y, NMem, el, J11Vec[el], J22Vec[el], J12Vec[el],
-                         allDofMem, ELocal)
+        if dim == 2:
 
-        # rotate strain tensor to material coordinates
-        T[0, 0] = cos(thetaVec[el]) * cos(thetaVec[el])
-        T[0, 1] = sin(thetaVec[el]) * sin(thetaVec[el])
-        T[0, 2] = sin(thetaVec[el]) * cos(thetaVec[el])
+            # compute elastic strain and element dofs
+            membrane2DStrain(X, Y, NMem, el, J11Vec[el], J22Vec[el], J12Vec[el],
+                             ELocal)
+        elif dim == 3:
+            # compute elastic strain and element dofs
+            membrane3DStrain(X, Y, Z, NMem, el, J11Vec[el], J22Vec[el], J12Vec[el],
+                             ELocal)
 
-        T[1, 0] = sin(thetaVec[el]) * sin(thetaVec[el])
-        T[1, 1] = cos(thetaVec[el]) * cos(thetaVec[el])
-        T[1, 2] = - sin(thetaVec[el]) * cos(thetaVec[el])
-
-        T[2, 0] = - 2 * sin(thetaVec[el]) * cos(thetaVec[el])
-        T[2, 1] = 2 * sin(thetaVec[el]) * cos(thetaVec[el])
-        T[2, 2] = cos(thetaVec[el]) * cos(thetaVec[el]) - sin(thetaVec[el]) * sin(thetaVec[el])
-
-        # total strain = elastic strain + wrinkling strain
-        ETotal[0] = ELocal[0] + Ew[nelemsBar + el, 0]
-        ETotal[1] = ELocal[1] + Ew[nelemsBar + el, 1]
-        ETotal[2] = ELocal[2] + Ew[nelemsBar + el, 2]
+        c = cos(-thetaVec[el])
+        s = sin(-thetaVec[el])
 
         # determine stressVoigt, S1, S2, theta
-        membrane2DStress(Cmat, ELocal, SLocal, &S1, &S2, &theta)
+        membraneStress(ELocal, SLocal, &S1_element, &S2_element, &theta, E_mod_3[el], nu[el])
+
+        if NMem[el, 4] == 1:
+            # check wrinkling criterion, update SLocal, ELocal, Ew
+            membraneWrinklingJarasjarungkiat(ELocal, SLocal, state_mem, S2_element, theta, el,  E_mod_3[el],
+                                             nu[el], P, alpha_array, 1, 2, sigma_max)
 
         # fibre strain
-        dot_mv(T, ELocal, EFibre)
+        EFibre[0] = c * c * ELocal[0] + s * s * ELocal[1] + s * c * ELocal[2]
+        EFibre[1] = s * s * ELocal[0] + c * c * ELocal[1] - s * c * ELocal[2]
+        EFibre[2] = - 2 * s * c * ELocal[0] + 2 * s * c * ELocal[1] + (c * c - s * s) * ELocal[2]
 
-        # determine fibre stress
-        dot_mv(Cmat, EFibre, SFibre)
+        # determine local stress
+        SFibre[0] =  c * c * SLocal[0] + s * s * SLocal[1] + 2 * s * c * SLocal[2]
+        SFibre[1] = s * s * SLocal[0] + c * c * SLocal[1] - 2 * s * c * SLocal[2]
+        SFibre[2] =  - s * c * SLocal[0] + s * c * SLocal[1] + (c * c - s * s) * SLocal[2]
 
         # PK2 tensor (symmetric tensor)
         PK2[0, 0] = SFibre[0]
@@ -145,205 +171,45 @@ cdef int computeStress2D(double [:] X,
         PK2[0, 1] = SFibre[2]
 
         # convert PK2 to cauchy stress
-        PK2toCauchy(X, Y, Z, NMem, el, J11Vec[el], J12Vec[el], J22Vec[el], PK2, cauchyLocal)
+        PK2toCauchy(X, Y, Z, J11Vec[el], J22Vec[el], J12Vec[el], NMem, el, area3[el], PK2, cauchyLocal)
 
         for i in range(3):
-            S[nelemsBar + el, i] = cauchyLocal[i]
-            # S[nelemsBar + el, i] = SFibre[i]
-            Eelastic[nelemsBar + el, i] = EFibre[i]
+            S[nelemsCable + el, i] = SFibre[i]
+            cauchy[nelemsCable + el, i] = cauchyLocal[i]
+            E[nelemsCable + el, i] = EFibre[i]
 
         # Principal strain (epsilon_1, epsilon_2, phi)
         a = (EFibre[ 0] + EFibre[1]) / 2
-        b = EFibre[2] * EFibre[2] - \
+        b = EFibre[2] * EFibre[2] / 4 - \
             EFibre[0] * EFibre[1]
 
-        # sigma1
-        Ep[nelemsBar + el, 0] = a + sqrt(a * a + b)
+        # epsilon1
+        E1[nelemsCable + el] = a + sqrt(a * a + b)
 
-        # sigma2
-        Ep[nelemsBar + el, 1] = a - sqrt(a * a + b)
+        # epsilon2
+        E2[nelemsCable + el] = a - sqrt(a * a + b)
 
         # phi
-        Ep[nelemsBar + el, 2] = (0.5 * atan2(2 * EFibre[2] ,
-                                (EFibre[0] - EFibre[1]))) * 180 / np.pi
+        # Ep[nelemsCable + el, 2] = (0.5 * atan2(2 * EFibre[2] ,
+        #                         (EFibre[0] - EFibre[1]))) * 180 / np.pi
 
         # Principal stress (sigma_1, sigma_2, phi)
-        a = (cauchyLocal[0] + cauchyLocal[1]) / 2
-        b = cauchyLocal[2] * cauchyLocal[2] - cauchyLocal[0] * cauchyLocal[1]
-        # a = (SFibre[0] + SFibre[1]) / 2
-        # b = SFibre[2] * SFibre[2] - SFibre[0] * SFibre[1]
+        a = (cauchy[nelemsCable + el, 0] + cauchy[nelemsCable + el, 1]) / 2
+        b = cauchy[nelemsCable + el, 2] * cauchy[nelemsCable + el, 2] - \
+            cauchy[nelemsCable + el, 0] * cauchy[nelemsCable + el, 1]
 
         # sigma1
-        Sp[nelemsBar + el, 0] = a + sqrt(a * a + b)
+        S1[nelemsCable + el] = a + sqrt(a * a + b)
 
         # sigma2
-        Sp[nelemsBar + el, 1] = a - sqrt(a * a + b)
+        S2[nelemsCable + el] = a - sqrt(a * a + b)
 
         # phi
-        # Sp[el, 2] = (0.5 * atan2(2 * cauchyLocal[2] ,
-        #                         (cauchyLocal[0] - cauchyLocal[1]))) * 180 / np.pi
-        # Sp[nelemsBar + el, 2] = (0.5 * atan2(2 * SFibre[2] ,
+        # Sp[nelemsCable + el, 2] = (0.5 * atan2(2 * SFibre[2] ,
         #                         (SFibre[0] - SFibre[1]))) * 180 / np.pi
 
         # Von Mises stress
-        VMS[nelemsBar + el] = sqrt((S[nelemsBar + el, 0] + S[nelemsBar + el, 1]) *
-                                   (S[nelemsBar + el, 0] + S[nelemsBar + el, 1]) -
-                                   3 * (S[nelemsBar + el, 0] * S[nelemsBar + el, 1] -
-                                        S[nelemsBar + el, 2] * S[nelemsBar + el, 2]))
-
-
-@cython.boundscheck(False) # turn off bounds-checking for entire function
-@cython.wraparound(False)  # turn off negative index wrapping for entire function
-cdef int computeStress3D(double [:] X,
-                          double [:] Y,
-                          double [:] Z,
-                          int [:, ::1] NMem,
-                          int [:, ::1] NBar,
-                          unsigned int nelemsBar,
-                          unsigned int nelemsMem,
-                          double [:] J11Vec,
-                          double [:] J12Vec,
-                          double [:] J22Vec,
-                          double EMem,
-                          double poisson,
-                          double EBar,
-                          double areaBar,
-                          double [:, ::1] S,
-                          double [:, ::1] Sp,
-                          double [:, ::1] Ep,
-                          double [:, ::1] Eelastic,
-                          double [:] thetaVec,
-                          double [:] VMS,
-                          double [:] areaVec,
-                          double [:] L0,
-                          double [:, ::1] Ew,
-                          unsigned int [:] state) except -1:
-    """
-    
-    :param X:           X-coordinates (current configuration)
-    :param Y:           Y-coordinates (current configuration)
-    :param Z:           Z-coordinates (current configuration)
-    :param N:           element connectivity matrix
-    :param nelems:      total number of elements
-    :param J11Vec:      transformation parameters between initial and current configuration
-    :param J12Vec:      transformation parameters between initial and current configuration
-    :param J22Vec:      transformation parameters between initial and current configuration
-    :param E:           Young's modulus
-    :param poisson:     Poisson's ratio
-    :param S:           Cauchy stress matrix (sigmaxx, sigmayy, tauxy)
-    :param Sp:          principal stress matrix (S1, S2, phi)
-    :param Eelastic:    strain matrix in Voigt form (Exx, Eyy, Exy)
-    :param thetaVec:    angle between local and fibre axis
-    :param areaVec:     element areas
-    
-    :return:            void, stress and strain vectors are filled in memory view
-    """
-
-    cdef:
-
-        unsigned int el
-        double S1, S2, theta, strainBar, stressBar
-
-        unsigned int [:] allDofMem = np.empty(9, dtype=np.uintc)
-        double [:] SFibre = np.zeros(3, dtype=np.double)
-        double [:] SLocal = np.zeros(3, dtype=np.double)
-        double [:] ELocal = np.zeros(3, dtype=np.double)
-        double [:] EFibre = np.zeros(3, dtype=np.double)
-        double [:] ETotal = np.zeros(3, dtype=np.double)
-        double [:] cauchyLocal = np.zeros(3, dtype=np.double)
-
-        double [:, :] Cmat = np.zeros((3, 3), dtype=np.double)
-        double [:, :] PK2 = np.empty((2, 2), dtype=np.double)
-        double [:, :] T = np.empty((3, 3), dtype=np.double)
-
-    for el in range(nelemsBar):
-
-        bar3DCauchyStress(X, Y, Z, NBar, L0[el], EBar, &strainBar, &stressBar, el)
-
-    for el in range(nelemsMem):
-
-        # compute elastic strain and element dofs
-        membrane3DStrain(X, Y, Z, NMem, el, J11Vec[el], J22Vec[el], J12Vec[el],
-                         allDofMem, ELocal)
-
-        # rotate strain tensor to material coordinates
-        T[0, 0] = cos(thetaVec[el]) * cos(thetaVec[el])
-        T[0, 1] = sin(thetaVec[el]) * sin(thetaVec[el])
-        T[0, 2] = sin(thetaVec[el]) * cos(thetaVec[el])
-
-        T[1, 0] = sin(thetaVec[el]) * sin(thetaVec[el])
-        T[1, 1] = cos(thetaVec[el]) * cos(thetaVec[el])
-        T[1, 2] = - sin(thetaVec[el]) * cos(thetaVec[el])
-
-        T[2, 0] = - 2 * sin(thetaVec[el]) * cos(thetaVec[el])
-        T[2, 1] = 2 * sin(thetaVec[el]) * cos(thetaVec[el])
-        T[2, 2] = cos(thetaVec[el]) * cos(thetaVec[el]) - sin(thetaVec[el]) * sin(thetaVec[el])
-
-        # constitutive matrix
-        CmatStVenantIsotropic(EMem, poisson, Cmat)
-
-        # total strain = elastic strain + wrinkling strain
-        ETotal[0] = ELocal[0] + Ew[nelemsBar + el, 0]
-        ETotal[1] = ELocal[1] + Ew[nelemsBar + el, 1]
-        ETotal[2] = ELocal[2] + Ew[nelemsBar + el, 2]
-
-        # determine stressVoigt, S1, S2, theta
-        membrane3DStress(Cmat, ELocal, SLocal, &S1, &S2, &theta)
-
-        dot_mv(T, ELocal, EFibre)
-
-        # determine local stress
-        dot_mv(Cmat, EFibre, SFibre)
-
-        # PK2 tensor (symmetric tensor)
-        PK2[0, 0] = SFibre[0]
-        PK2[1, 1] = SFibre[1]
-        PK2[1, 0] = SFibre[2]
-        PK2[0, 1] = SFibre[2]
-
-        # convert PK2 to cauchy stress
-        PK2toCauchy(X, Y, Z, NMem, el, J11Vec[el], J12Vec[el], J22Vec[el], PK2, cauchyLocal)
-
-        for i in range(3):
-            S[nelemsBar + el, i] = cauchyLocal[i]
-            # S[el, i] = SFibre[i]
-            Eelastic[nelemsBar + el, i] = EFibre[i]
-
-        # Principal strain (epsilon_1, epsilon_2, phi)
-        a = (EFibre[ 0] + EFibre[1]) / 2
-        b = EFibre[2] * EFibre[2] - \
-            EFibre[0] * EFibre[1]
-
-        # sigma1
-        Ep[nelemsBar + el, 0] = a + sqrt(a * a + b)
-
-        # sigma2
-        Ep[nelemsBar + el, 1] = a - sqrt(a * a + b)
-
-        # phi
-        Ep[nelemsBar + el, 2] = (0.5 * atan2(2 * EFibre[2] ,
-                                (EFibre[0] - EFibre[1]))) * 180 / np.pi
-
-        # Principal stress (sigma_1, sigma_2, phi)
-        a = (cauchyLocal[0] + cauchyLocal[1]) / 2
-        b = cauchyLocal[2] * cauchyLocal[2] - cauchyLocal[0] * cauchyLocal[1]
-        # a = (SFibre[0] + SFibre[1]) / 2
-        # b = SFibre[2] * SFibre[2] - SFibre[0] * SFibre[1]
-
-        # sigma1
-        Sp[nelemsBar + el, 0] = a + sqrt(a * a + b)
-
-        # sigma2
-        Sp[nelemsBar + el, 1] = a - sqrt(a * a + b)
-
-        # phi
-        # Sp[el, 2] = (0.5 * atan2(2 * cauchyLocal[2] ,
-        #                         (cauchyLocal[0] - cauchyLocal[1]))) * 180 / np.pi
-        Sp[nelemsBar + el, 2] = (0.5 * atan2(2 * SFibre[2] ,
-                                (SFibre[0] - SFibre[1]))) * 180 / np.pi
-
-        # Von Mises stress
-        VMS[nelemsBar + el] = sqrt((S[nelemsBar + el, 0] + S[nelemsBar + el, 1]) *
-                                   (S[nelemsBar + el, 0] + S[nelemsBar + el, 1]) -
-                                   3 * (S[nelemsBar + el, 0] * S[nelemsBar + el, 1] -
-                                        S[nelemsBar + el, 2] * S[nelemsBar + el, 2]))
+        VMS[nelemsCable + el] = sqrt((cauchy[nelemsCable + el, 0] + cauchy[nelemsCable + el, 1]) *
+                                   (cauchy[nelemsCable + el, 0] + cauchy[nelemsCable + el, 1]) -
+                                   3 * (cauchy[nelemsCable + el, 0] * cauchy[nelemsCable + el, 1] -
+                                        cauchy[nelemsCable + el, 2] * cauchy[nelemsCable + el, 2]))
