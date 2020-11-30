@@ -3,8 +3,8 @@ import numpy as np
 cimport numpy as np
 cimport cython
 
-from mem4py.helper.area cimport areaSingle
-from mem4py.ceygen.ceygenMath cimport dot_mm
+from src.helper.area cimport areaSingle
+from src.ceygen.ceygenMath cimport dot_mm
 
 
 

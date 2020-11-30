@@ -21,8 +21,8 @@ if useCython:
 ext = '.pyx' if useCython else '.cpp'
 
 
-files = glob('mem4py/*{}'.format(ext))
-files.extend(glob('mem4py/*/*{}'.format(ext)))
+files = glob('src/*{}'.format(ext))
+files.extend(glob('src/*/*{}'.format(ext)))
 
 def makeExtensionLinux(file, includeDird):
     extName = os.path.splitext(file)[0]
@@ -49,8 +49,8 @@ setup(
   description="Python interface for membrane FEM solver.",
   ext_modules=extensions,
   cmdclass=cmdclass,
-  packages=['mem4py', 'mem4py/assembler', 'mem4py/ceygen',
-            'mem4py/solver', 'mem4py/helper', 'mem4py/elements']
+  packages=['src', 'src/assembler', 'src/ceygen',
+            'src/solver', 'src/helper', 'src/elements']
 )
 
 print("********CYTHON COMPLETE******")

@@ -6,16 +6,16 @@ cimport cython
 import time
 from libc.math cimport isnan
 
-from mem4py.assembler.M cimport assemble_M_DR
-from mem4py.assembler.RHS cimport assembleRHS
-from mem4py.helper.sparse cimport sparsityPattern
-from mem4py.helper.dirichletHandler cimport correctBC
-from mem4py.writeOutput cimport writeVTK
-from mem4py.ceygen.ceygenMath cimport dot_vv
-from mem4py.ceygen.ceygenMath cimport add_vv
-from mem4py.ceygen.ceygenMath cimport subtract_vv
-from mem4py.ceygen.ceygenMath cimport multiply_vs
-from mem4py.ceygen.ceygenMath cimport multiply_vv
+from src.assembler.M cimport assemble_M_DR
+from src.assembler.RHS cimport assembleRHS
+from src.helper.sparse cimport sparsityPattern
+from src.helper.dirichletHandler cimport correctBC
+from src.writeOutput cimport writeVTK
+from src.ceygen.ceygenMath cimport dot_vv
+from src.ceygen.ceygenMath cimport add_vv
+from src.ceygen.ceygenMath cimport subtract_vv
+from src.ceygen.ceygenMath cimport multiply_vs
+from src.ceygen.ceygenMath cimport multiply_vv
 
 cdef extern from "math.h":
     double fabs(double m)

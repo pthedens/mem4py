@@ -4,7 +4,7 @@ cimport numpy as np
 cimport cython
 from scipy.sparse import coo_matrix
 
-from mem4py.ceygen.ceygenMath cimport multiply_vs, power_vs
+from src.ceygen.ceygenMath cimport multiply_vs, power_vs
 
 
 # cdef extern from "math.h":

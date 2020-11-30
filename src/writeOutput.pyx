@@ -5,13 +5,13 @@ cimport numpy as np
 cimport cython
 from datetime import datetime
 
-from mem4py.helper.computeStress cimport computeStress
-from mem4py.helper.writeObject cimport writeVectorNode3D
-from mem4py.helper.writeObject cimport writeVectorNode2D
-from mem4py.helper.writeObject cimport writeVectorElement
-from mem4py.helper.writeObject cimport writeScalarElement
-from mem4py.helper.writeObject cimport writeScalarElementInt
-from mem4py.helper.normalVector cimport computeNormalVector
+from src.helper.computeStress cimport computeStress
+from src.helper.writeObject cimport writeVectorNode3D
+from src.helper.writeObject cimport writeVectorNode2D
+from src.helper.writeObject cimport writeVectorElement
+from src.helper.writeObject cimport writeScalarElement
+from src.helper.writeObject cimport writeScalarElementInt
+from src.helper.normalVector cimport computeNormalVector
 
 
 cdef extern from "math.h":

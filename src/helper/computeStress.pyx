@@ -3,13 +3,13 @@ import numpy as np
 cimport numpy as np
 cimport cython
 
-from mem4py.helper.PK2toCauchy cimport PK2toCauchy
-from mem4py.elements.membrane cimport membrane2DStrain
-from mem4py.elements.membrane cimport membrane3DStrain
-from mem4py.elements.membrane cimport membraneStress
-from mem4py.elements.membrane cimport membraneWrinklingJarasjarungkiat
-from mem4py.elements.cable cimport cable2DCauchyStress
-from mem4py.elements.cable cimport cable3DCauchyStress
+from src.helper.PK2toCauchy cimport PK2toCauchy
+from src.elements.membrane cimport membrane2DStrain
+from src.elements.membrane cimport membrane3DStrain
+from src.elements.membrane cimport membraneStress
+from src.elements.membrane cimport membraneWrinklingJarasjarungkiat
+from src.elements.cable cimport cable2DCauchyStress
+from src.elements.cable cimport cable3DCauchyStress
 
 
 cdef extern from "math.h":

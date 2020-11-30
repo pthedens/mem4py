@@ -3,8 +3,8 @@ import numpy as np
 cimport numpy as np
 cimport cython
 
-from mem4py.helper.dirichletHandler cimport initialiseDirichletBC
-from mem4py.helper.area cimport area
+from src.helper.dirichletHandler cimport initialiseDirichletBC
+from src.helper.area cimport area
 
 
 cdef extern from "math.h":
