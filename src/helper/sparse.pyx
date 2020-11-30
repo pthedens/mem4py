@@ -1,4 +1,5 @@
-# cython: profile=False, cdivision=True, boundcheck=False, wraparound=False, nonecheck=False, language_level=3
+# cython: language_level=3
+# cython: boundcheck=False
 import numpy as np
 cimport numpy as np
 cimport cython
@@ -15,7 +16,10 @@ from libc.math cimport sqrt, fabs, fmax
 from libcpp.vector cimport vector
 
 
-@cython.wraparound(True)
+@cython.profile(False)
+@cython.cdivision(True)
+@cython.wraparound(False)
+@cython.nonecheck(False)
 cdef object sparsityPattern(int [:, ::1] NCable,
                             int [:, ::1] NMem,
                             unsigned int nelemsCable,
@@ -122,6 +126,10 @@ cdef object sparsityPattern(int [:, ::1] NCable,
     return order2, indptr, indices
 
 
+@cython.profile(False)
+@cython.cdivision(True)
+@cython.wraparound(False)
+@cython.nonecheck(False)
 cdef int addRows(double [:] data,
                  unsigned int [:] indptr,
                  unsigned int ndof,
@@ -148,6 +156,7 @@ cdef int addRows(double [:] data,
     :return: 
     """
     cdef:
+        unsigned int zero_detected = 0
         double betaRow, alphaSqrt, noDiag, alphaSqrtOld = -1
         Py_ssize_t i, j, ind = 0
 
@@ -212,34 +221,35 @@ cdef int addRows(double [:] data,
         raise Exception("no method defined for DR."
                         "Choose either Barnes, Alamatian, or KDR1")
 
-    if dim == 2:
+    for i in range(ndof):
+        if M[i] == 0.:
+            zero_detected = 1
+            break
 
-        # Set zero mass entries to
-        for i in range(ndof):
+    if zero_detected == 1:
 
-            # set mass to largest nodal value
-            if fabs(M[i]) == 0:
+        if dim == 2:
 
-                if (i / 2) % 2:  # x
-                    M[i] = M[i + 1]
-                else:  # y
-                    M[i] = M[i - 1]
+            # Set zero mass entries to
+            for i in range(ndof):
 
-    # elif dim == 3:
+                # set mass to largest nodal value
+                if fabs(M[i]) == 0:
 
-    #     ind = 0
-    #     for i in range(ndof/3):
-    #         alphaSqrt = fmax(M[ind], M[ind+1])
-    #         alphaSqrt = fmax(alphaSqrt, M[ind+2])
-    #         M[ind] = alphaSqrt
-    #         M[ind+1] = alphaSqrt
-    #         M[ind+2] = alphaSqrt
-    #         ind += 3
+                    if (i / 2) % 2:  # x
+                        M[i] = M[i + 1]
+                    else:  # y
+                        M[i] = M[i - 1]
+
+        elif dim == 3:
+
+            ind = 0
+            for i in range(ndof/3):
+                alphaSqrt = fmax(M[ind], M[ind+1])
+                alphaSqrt = fmax(alphaSqrt, M[ind+2])
+                M[ind] = alphaSqrt
+                M[ind+1] = alphaSqrt
+                M[ind+2] = alphaSqrt
+                ind += 3
 
     power_vs(M, -1, Minv)
-    # for i in range(ndof):
-    #     Minv[i] = 1 / M[i]
-
-    with gil:
-        if np.sum(np.isinf(Minv)) > 0:
-            raise Exception("Nan in Minv detected.")
