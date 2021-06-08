@@ -52,6 +52,10 @@ A surface mesh in gmsh format has to be provided in the /msh folder.
 In a python script the properties are defined in a `dict` which is fed to the solver. Closely follow the example
 case in the tutorials folder.
 
+# License:
+
+The software is licensed under MIT.
+
 # Acknowledgments
 
 mem4py extensively uses a cython version of eigen3 which is originally based on https://github.com/strohel/Ceygen.
