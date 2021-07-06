@@ -4,12 +4,12 @@ cimport numpy as np
 cimport cython
 import time
 
-from src.assembler.M cimport assembleM
-from src.assembler.K cimport computeuDotDot
-from src.assembler.RHS cimport assembleRHS
-from src.helper.dirichletHandler cimport correctBC
-from src.helper.sparse cimport sparsityPattern
-from src.writeOutput cimport writeVTK
+from mem4py.assembler.M cimport assembleM
+from mem4py.assembler.K cimport computeuDotDot
+from mem4py.assembler.RHS cimport assembleRHS
+from mem4py.helper.dirichletHandler cimport correctBC
+from mem4py.helper.sparse cimport sparsityPattern
+from mem4py.writeOutput cimport writeVTK
 
 
 cdef int solveTransient(object data) except -1:

@@ -7,7 +7,7 @@ cimport cython
 
 from eigen_cython cimport *
 from dispatch cimport *
-from src.ceygen.dtype cimport dtype
+from mem4py.ceygen.dtype cimport dtype
 
 # ELEMWISE
 cdef void add_vs_worker(

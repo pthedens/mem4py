@@ -4,11 +4,11 @@ cimport numpy as np
 cimport cython
 import os
 
-from src.readMsh cimport readMsh
-from src.solver.DR cimport solveKDR
-from src.solver.transient cimport solveTransient
-from src.helper.cellCentre cimport cellCentre2D, cellCentre3D
-from src.writeOutput cimport writeVTK
+from mem4py.readMsh cimport readMsh
+from mem4py.solver.DR cimport solveKDR
+from mem4py.solver.transient cimport solveTransient
+from mem4py.helper.cellCentre cimport cellCentre2D, cellCentre3D
+from mem4py.writeOutput cimport writeVTK
 
 
 class Mem4py:
