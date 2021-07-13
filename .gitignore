@@ -1,0 +1,23 @@
+# Cython
+*.pyc
+*.pyo
+*.pyd
+__pycache__
+*.so
+*.o
+*.cpp
+/build
+
+*.egg
+*.egg-info
+.*cache*/
+*venv*/
+
+# Editor stuff
+
+# Jetbrains IDE project files
+/.idea
+/*.iml
+
+# Visual Studio Code files
+.vscode

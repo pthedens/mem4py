@@ -3,8 +3,8 @@ import numpy as np
 cimport numpy as np
 cimport cython
 
-from src.ceygen.ceygenMath cimport add_vv
-from src.ceygen.ceygenMath cimport multiply_vs
+from mem4py.ceygen.ceygenMath cimport add_vv
+from mem4py.ceygen.ceygenMath cimport multiply_vs
 
 cdef extern from "math.h":
     double sqrt(double m)

@@ -4,15 +4,15 @@ import numpy as np
 cimport numpy as np
 cimport cython
 
-from src.elements.cable cimport cable2DFintAndK
-from src.elements.cable cimport cable3DFintAndK
-from src.elements.membrane cimport membrane2DStrain
-from src.elements.membrane cimport membrane2DKmat
-from src.elements.membrane cimport membrane3DStrain
-from src.elements.membrane cimport membrane3DKmat
-from src.elements.membrane cimport membraneStress
-from src.elements.membrane cimport membraneWrinklingJarasjarungkiat
-from src.helper.sparse cimport addRows
+from mem4py.elements.cable cimport cable2DFintAndK
+from mem4py.elements.cable cimport cable3DFintAndK
+from mem4py.elements.membrane cimport membrane2DStrain
+from mem4py.elements.membrane cimport membrane2DKmat
+from mem4py.elements.membrane cimport membrane3DStrain
+from mem4py.elements.membrane cimport membrane3DKmat
+from mem4py.elements.membrane cimport membraneStress
+from mem4py.elements.membrane cimport membraneWrinklingJarasjarungkiat
+from mem4py.helper.sparse cimport addRows
 
 
 cdef extern from "math.h":

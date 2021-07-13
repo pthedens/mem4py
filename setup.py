@@ -2,12 +2,19 @@ import os
 import numpy
 from glob import glob
 from distutils.core import setup
-from distutils.extension import Extension
+from setuptools import find_packages, Extension
+#from distutils.extension import Extension
+from pathlib import Path
 
 useCython = True
 
 APPNAME = "mem4py"
-APPVERSION = "1.0"
+APPVERSION = "1.0.1"
+
+if os.name == 'nt':
+    EIGEN_PATH = Path(r'C:\Program Files\eigen3')
+elif os.name == 'posix':
+    EIGEN_PATH = Path('/usr/include/eigen3')
 
 cmdclass = dict()
 if useCython:
@@ -15,42 +22,38 @@ if useCython:
         from Cython.Distutils import build_ext
         cmdclass.update({'build_ext': build_ext})
     except ImportError:
-        print("WARNIG: No Cython installed, compiling from .cpp files")
+        print("WARNING: No Cython installed, compiling from .cpp files")
         useCython = False
 
 ext = '.pyx' if useCython else '.cpp'
+files = glob('src/**/*{}'.format(ext), recursive=True)
 
 
-files = glob('src/*{}'.format(ext))
-files.extend(glob('src/*/*{}'.format(ext)))
-
-def makeExtensionLinux(file, includeDird):
-    extName = os.path.splitext(file)[0]
-    extName = extName.replace(os.path.sep, '.')
-    return Extension(extName, [file], include_dirs = includeDirs, language='c++')
-
-def makeExtensionWindows(file, includeDirs):
-    extName = file.replace('\\', '.')[:-4]
+def makeExtension(file, includeDirs):
+    # There probably is a better way of doing this..
+    # Extension namespace.package.name
+    nameSpace = os.path.relpath(file, Path('src/'))
+    extName = os.path.splitext(nameSpace)[0].replace(os.path.sep, '.')
+    extName = APPNAME if (extName == f"{APPNAME}.{APPNAME}") else extName  # Handle mem4py.mem4py
     return Extension(extName, [file], include_dirs=includeDirs, language='c++')
 
+
 includeDirs = list(set([os.path.dirname(path) for path in files]))
-if os.name == 'nt':
-    includeDirs.append('C:\\Program Files\\eigen3')
-    includeDirs.append(numpy.get_include())
-    extensions = [makeExtensionWindows(path, includeDirs) for path in files]
-elif os.name == 'posix':
-    includeDirs.append('/usr/include/eigen3')
-    includeDirs.append(numpy.get_include())
-    extensions = [makeExtensionLinux(path, includeDirs) for path in files]
+includeDirs.append(numpy.get_include())
+includeDirs.append(EIGEN_PATH)
+extensions = [makeExtension(path, includeDirs) for path in files]
 
 setup(
-  name=APPNAME,
-  version=APPVERSION,
-  description="Python interface for membrane FEM solver.",
-  ext_modules=extensions,
-  cmdclass=cmdclass,
-  packages=['src', 'src/assembler', 'src/ceygen',
-            'src/solver', 'src/helper', 'src/elements']
+    name=APPNAME,
+    version=APPVERSION,
+    url="https://github.com/pthedens/mem4py",
+    description="Python interface for membrane FEM solver.",
+    ext_modules=extensions,
+    cmdclass=cmdclass,
+    package_dir={'': 'src'},
+    packages=find_packages(where='src'),
+    # packages=['mem4py', 'mem4py/assembler', 'mem4py/ceygen',
+    #           'mem4py/solver', 'mem4py/helper', 'mem4py/elements']
 )
 
 print("********CYTHON COMPLETE******")
