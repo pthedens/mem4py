@@ -26,13 +26,13 @@ if useCython:
         useCython = False
 
 ext = '.pyx' if useCython else '.cpp'
-files = glob('src/**/*{}'.format(ext), recursive=True)
+files = glob('mem4py/**/*{}'.format(ext), recursive=True)
 
 
 def makeExtension(file, includeDirs):
     # There probably is a better way of doing this..
     # Extension namespace.package.name
-    nameSpace = os.path.relpath(file, Path('src/'))
+    nameSpace = os.path.relpath(file, Path('mem4py/'))
     extName = os.path.splitext(nameSpace)[0].replace(os.path.sep, '.')
     extName = APPNAME if (extName == f"{APPNAME}.{APPNAME}") else extName  # Handle mem4py.mem4py
     return Extension(extName, [file], include_dirs=includeDirs, language='c++')
@@ -50,8 +50,8 @@ setup(
     description="Python interface for membrane FEM solver.",
     ext_modules=extensions,
     cmdclass=cmdclass,
-    package_dir={'': 'src'},
-    packages=find_packages(where='src'),
+    package_dir={'': 'mem4py'},
+    packages=find_packages(where='mem4py'),
     # packages=['mem4py', 'mem4py/assembler', 'mem4py/ceygen',
     #           'mem4py/solver', 'mem4py/helper', 'mem4py/elements']
 )
