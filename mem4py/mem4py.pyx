@@ -100,6 +100,7 @@ class Mem4py:
         self.prescribedDisplacement = []
         self.loadedBCNodes = None
         self.loadedBCEdges = None
+        self.loadedBCSurface = None
         self.elPressurised = None
         self.nPressurised = []
         self.area3 = []

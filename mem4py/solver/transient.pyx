@@ -22,6 +22,7 @@ cdef int solveTransient(object data) except -1:
 
         double [:, ::1] loadedBCNodes = data.loadedBCNodes
         double [:, ::1] loadedBCEdges = data.loadedBCEdges
+        double [:, ::1] loadedBCSurface = data.loadedBCSurface
 
         double [:, ::1] Ew = np.zeros((data.nelemsMem, 3), dtype=np.double)
 
@@ -198,7 +199,7 @@ cdef int solveTransient(object data) except -1:
 
     integrator.set_initial_value(qq0, 0).set_f_params(X, Y, Z, X0, Y0, Z0, Minv, Fint, RHS, RHS0, uDot, uDotDot,
                                                      NMem, NCable, area3, L0, elPressurised, elFSI, p, Sx, Sy, Sz,
-                                                     pFSI, loadedBCNodes, loadedBCEdges, dofFixed, dim, nnodes, ndof,
+                                                     pFSI, loadedBCNodes, loadedBCEdges, loadedBCSurface, dofFixed, dim, nnodes, ndof,
                                                      gravity, nelemsMem, nelemsCable, rho3, area2, rho2,
                                                      J11Vec, J22Vec,J12Vec, E3, E2, nu, thickness, alpha, beta,
                                                      thetaVec, Ew, order, indices, indptr, dataK, diagK, wrinkling,
@@ -352,7 +353,7 @@ cdef int solveTransient(object data) except -1:
 
 
 def firstOrderSystemNonlinear(t, qq, X, Y, Z, X0, Y0, Z0, Minv, Fint, RHS, RHS0, uDot, uDotDot, NMem, NCable, area3,
-                              L0, elPressurised, elFSI, p, Sx, Sy, Sz, pFSI, loadedBCNodes, loadedBCEdges, dofFixed,
+                              L0, elPressurised, elFSI, p, Sx, Sy, Sz, pFSI, loadedBCNodes, loadedBCEdges, loadedBCSurface, dofFixed,
                               dim, nnodes, ndof, gravity, nelemsMem, nelemsCable, rho3, area2, rho2, J11Vec, J22Vec,
                               J12Vec, E3, E2, nu, thickness, alpha, beta, thetaVec, Ew, order, indices, indptr,
                               data, diagK, wrinkling, g, i, wrinklingFlag, nPressurised, nFSI, state, force_vector,
@@ -402,7 +403,7 @@ def firstOrderSystemNonlinear(t, qq, X, Y, Z, X0, Y0, Z0, Minv, Fint, RHS, RHS0,
         # RHS vector in current configuration
         assembleRHS(X, Y, Z, pre_u, NMem, NCable, p, RHS, RHS0, elPressurised, elFSI, area3, L0, gravity,
                     nelemsMem, nelemsCable, nPressurised, nFSI, thickness, rho3, area2, rho2, g, Sx, Sy, Sz,
-                    pFSI, loadedBCNodes, loadedBCEdges, RHS0flag, 1, dim, force_vector, E2,
+                    pFSI, loadedBCNodes, loadedBCEdges, loadedBCSurface, RHS0flag, 1, dim, force_vector, E2,
                     pre_stress_cable, pre_strain_cable, pre_stress_membrane, pre_strain_membrane,
                     pre_active, J11Vec, J22Vec, J12Vec, thetaVec, E3, nu)
 

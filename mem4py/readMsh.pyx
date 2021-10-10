@@ -51,6 +51,7 @@ cdef int readMsh(object data) except -1:
     fixedBCNodesRead = []
     loadedBCNodesRead = []
     loadedBCEdgesRead = []
+    loadedBCSurfaceRead = []
     prescribedBCNodesRead = []
     bnames = dict()
     X0read = []
@@ -149,7 +150,7 @@ cdef int readMsh(object data) except -1:
                 if state == 'MeshFormat':
                     args = line.split()
                     if float(args[0]) >= 4:
-                        raise Exception("Cannot read msh input file version 4.0. Use -format msh2 when creating msh file")
+                        raise Exception("Cannot read msh input file version 4.0. Use \"-format msh2\" when creating msh file")
                     readArgs = False
                 elif state == 'PhysicalNames':
                     readArgs = False
@@ -582,6 +583,24 @@ cdef int readMsh(object data) except -1:
                             fixedBCNodesRead.append(k)
                             fixedBCNodesRead.append(3)
                             fixedBCNodesRead.append(q)
+                        if j == 14:  # edgeX
+                            f = data.elStruc[bnames[int(args[3])]]["edgeX"]
+                            loadedBCSurfaceRead.append([1, i, k, q, f])
+                        if j == 15:  # edgeY
+                            f = data.elStruc[bnames[int(args[3])]]["edgeY"]
+                            loadedBCSurfaceRead.append([2, i, k, q, f])
+                        if j == 16:  # edgeZ
+                            f = data.elStruc[bnames[int(args[3])]]["edgeZ"]
+                            loadedBCSurfaceRead.append([3, i, k, q, f])
+                        if j == 17:  # shearX
+                            f = data.elStruc[bnames[int(args[3])]]["shearX"]
+                            loadedBCSurfaceRead.append([4, i, k, q, f])
+                        if j == 18:  # shearY
+                            f = data.elStruc[bnames[int(args[3])]]["shearY"]
+                            loadedBCSurfaceRead.append([5, i, k, q, f])
+                        if j == 19:  # shearZ
+                            f = data.elStruc[bnames[int(args[3])]]["shearZ"]
+                            loadedBCSurfaceRead.append([6, i, k, q, f])
                         elif j == 20:  # pressure
                             N3Read.append([j, i, k, q, int(args[3])])
 
@@ -671,6 +690,22 @@ cdef int readMsh(object data) except -1:
             Nc[el, 3] = 1
             el += 1
 
+    # edge loads on M3 elements
+    for i in range(len(edgeX_ID)):
+        ind = np.where(np.asarray(N3)[:, 4] == edgeX_ID[i])[0]
+        for j in ind:
+            loadedBCSurfaceRead.append([1, N3[j, 1], N3[j, 2], N3[j, 2], edgeX_Mag[int(i)]])
+
+    for i in range(len(edgeY_ID)):
+        ind = np.where(np.asarray(N3)[:, 4] == edgeY_ID[i])[0]
+        for j in ind:
+            loadedBCSurfaceRead.append([2, N3[j, 1], N3[j, 2], N3[j, 2], edgeY_Mag[int(i)]])
+
+    for i in range(len(edgeZ_ID)):
+        ind = np.where(np.asarray(N3)[:, 4] == edgeZ_ID[i])[0]
+        for j in ind:
+            loadedBCSurfaceRead.append([3, N3[j, 1], N3[j, 2], N3[j, 2], edgeZ_Mag[int(i)]])
+
     # find number of pressurised elements and corresponding element IDs
     elPressurisedTemp = []
 
@@ -700,6 +735,7 @@ cdef int readMsh(object data) except -1:
 
         elif N3[i, 0] == 20:  # pressurized element
 
+            # TODO: this could cause a seg fault...
             # find pressurized element in Nm and save its element ID
             if N3[i - 1, 1] == N3[i, 1] and N3[i - 1, 2] == N3[i, 2] and N3[i - 1, 3] == N3[i, 3]:
                 elPressurisedTemp.append([N3[i, 4], el - 1])
@@ -821,12 +857,20 @@ cdef int readMsh(object data) except -1:
     cdef double [:, ::1] loadedBCNodes = np.asarray(loadedBCNodesRead, dtype=np.double)
     cdef double [:, ::1] loadedBCNodes_damper = np.asarray(loadedBCNodesRead_damper, dtype=np.double)
     data.loadedBCNodes_damper = loadedBCNodes_damper
+
     if not loadedBCEdgesRead:
         loadedBCEdgesRead = np.zeros((1, 4), dtype=np.double)
     else:
         loadedBCEdgesRead = np.asarray(loadedBCEdgesRead, dtype=np.double)
         loadedBCEdgesRead = loadedBCEdgesRead[loadedBCEdgesRead[:,0].argsort()]
     cdef double [:, ::1] loadedBCEdges = np.asarray(loadedBCEdgesRead, dtype=np.double)
+
+    if not loadedBCSurfaceRead:
+        loadedBCSurfaceRead = np.zeros((1, 5), dtype=np.double)
+    else:
+        loadedBCSurfaceRead = np.asarray(loadedBCSurfaceRead, dtype=np.double)
+        loadedBCSurfaceRead = loadedBCSurfaceRead[loadedBCSurfaceRead[:,0].argsort()]
+    cdef double [:, ::1] loadedBCSurface = np.asarray(loadedBCSurfaceRead, dtype=np.double)
 
     if prescribedBCNodesRead:
         prescribedBCNodesRead = np.unique(prescribedBCNodesRead, axis=0)
@@ -1086,6 +1130,7 @@ cdef int readMsh(object data) except -1:
     # data.prescribedDisplacement = prescribedDisplacement
     data.loadedBCNodes = loadedBCNodes
     data.loadedBCEdges = loadedBCEdges
+    data.loadedBCSurface = loadedBCSurface
     data.elPressurised = elPressurised
     data.nPressurised = nPressurised
     data.elFSI = elFSI

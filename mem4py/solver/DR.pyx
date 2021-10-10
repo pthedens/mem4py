@@ -36,6 +36,7 @@ cdef int solveKDR(object data) except -1:
 
         double [:, ::1] loadedBCNodes = data.loadedBCNodes
         double [:, ::1] loadedBCEdges = data.loadedBCEdges
+        double [:, ::1] loadedBCSurface = data.loadedBCSurface
 
         double [:] V =     np.zeros(data.ndof, dtype=np.double)
         double [:] MV =    np.zeros(data.ndof, dtype=np.double)
@@ -216,7 +217,7 @@ cdef int solveKDR(object data) except -1:
     # RHS vector in current configuration
     assembleRHS(X, Y, Z, pre_u, NMem, NCable, p, RHS, RHS0, elPressurised, elFSI, area3, L0, gravity,
                 nelemsMem, nelemsCable, nPressurised, nFSI, t, rho3, area2, rho2, g, Sx, Sy, Sz,
-                pFSI, loadedBCNodes, loadedBCEdges, 0, 1 / data.solverOptions["nLoadSteps"], dim, force_vector, E2,
+                pFSI, loadedBCNodes, loadedBCEdges, loadedBCSurface, 0, 1 / data.solverOptions["nLoadSteps"], dim, force_vector, E2,
                 pre_stress_cable, pre_strain_cable, pre_stress_membrane, pre_strain_membrane,
                 pre_active, J11Vec, J22Vec, J12Vec, thetaVec, E3, nu)
 
@@ -244,7 +245,7 @@ cdef int solveKDR(object data) except -1:
             # RHS vector in current configuration
             assembleRHS(X, Y, Z, pre_u, NMem, NCable, p, RHS, RHS0, elPressurised, elFSI, area3, L0, gravity,
                         nelemsMem, nelemsCable, nPressurised, nFSI, t, rho3, area2, rho2, g, Sx, Sy, Sz,
-                        pFSI, loadedBCNodes, loadedBCEdges, 0, loadStep, dim, force_vector, E2,
+                        pFSI, loadedBCNodes, loadedBCEdges, loadedBCSurface, 0, loadStep, dim, force_vector, E2,
                         pre_stress_cable, pre_strain_cable, pre_stress_membrane, pre_strain_membrane,
                         pre_active, J11Vec, J22Vec, J12Vec, thetaVec, E3, nu)
 
@@ -295,7 +296,7 @@ cdef int solveKDR(object data) except -1:
                     # RHS vector in current configuration
                     assembleRHS(X, Y, Z, pre_u, NMem, NCable, p, RHS, RHS0, elPressurised, elFSI, area3, L0, gravity,
                                 nelemsMem, nelemsCable, nPressurised, nFSI, t, rho3, area2, rho2, g, Sx, Sy, Sz,
-                                pFSI, loadedBCNodes, loadedBCEdges, 0, loadStep, dim, force_vector, E2,
+                                pFSI, loadedBCNodes, loadedBCEdges, loadedBCSurface, 0, loadStep, dim, force_vector, E2,
                                 pre_stress_cable, pre_strain_cable, pre_stress_membrane, pre_strain_membrane,
                                 pre_active, J11Vec, J22Vec, J12Vec, thetaVec, E3, nu)
 
@@ -386,7 +387,7 @@ cdef int solveKDR(object data) except -1:
                     # RHS vector in current configuration
                     assembleRHS(X, Y, Z, pre_u, NMem, NCable, p, RHS, RHS0, elPressurised, elFSI, area3, L0, gravity,
                                 nelemsMem, nelemsCable, nPressurised, nFSI, t, rho3, area2, rho2, g, Sx, Sy, Sz,
-                                pFSI, loadedBCNodes, loadedBCEdges, 0, loadStep, dim, force_vector, E2,
+                                pFSI, loadedBCNodes, loadedBCEdges, loadedBCSurface, 0, loadStep, dim, force_vector, E2,
                                 pre_stress_cable, pre_strain_cable, pre_stress_membrane, pre_strain_membrane,
                                 pre_active, J11Vec, J22Vec, J12Vec, thetaVec, E3, nu)
 

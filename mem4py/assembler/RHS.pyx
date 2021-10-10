@@ -42,6 +42,7 @@ cdef int assembleRHS(double [:] X,
                      double [:] pFSI,
                      double [:, ::1] loadedBCNodes,
                      double [:, ::1] loadedBCEdges,
+                     double [:, ::1] loadedBCSurface,
                      unsigned int RHS0flag,
                      double loadStep,
                      unsigned int dim,
@@ -74,7 +75,7 @@ cdef int assembleRHS(double [:] X,
         
     """
     cdef:
-        Py_ssize_t el, dof1, dof2
+        Py_ssize_t el, dof1, dof2, dof3
         double fx, fy, fz, crossX, crossY, crossZ, area, l, dx, dy
 
         unsigned int [:] allDofCable = np.zeros(2 * dim, dtype=np.uintc)
@@ -318,7 +319,7 @@ cdef int assembleRHS(double [:] X,
                     dof1 = 3 * int(loadedBCNodes[el, 1] + 1) - 1
                     RHS[dof1] += loadStep * loadedBCNodes[el, 2]
 
-        # Compute edge load contributions (edgeX, edgeY, edgeZ, edgeNormal)
+        # Compute edge load contributions on C3 element (edgeX, edgeY, edgeZ, edgeNormal)
         if loadedBCEdges[0, 0] != 0:
 
             # loop through nodal loads
@@ -493,7 +494,7 @@ cdef int assembleRHS(double [:] X,
                      (X[NMem[elPressurised[el], 3]] - X[NMem[elPressurised[el], 1]]) * \
                      (Y[NMem[elPressurised[el], 2]] - Y[NMem[elPressurised[el], 1]])
 
-            # force components (pressure = p/6 * cross, stressX = Sx * A / 3)
+            # force components (pressure = p/6 * cross, stressX = Sx * A / 3) Dissertation Valdez 2007 pp. 52
             fx = loadStep * crossX * p[el] / 6
             fy = loadStep * crossY * p[el] / 6
             fz = loadStep * crossZ * p[el] / 6
@@ -557,6 +558,60 @@ cdef int assembleRHS(double [:] X,
             RHS[allDofMem[6]] += fx
             RHS[allDofMem[7]] += fy
             RHS[allDofMem[8]] += fz
+
+        # Compute edge load contributions on M3 element (edgeX, edgeY, edgeZ)
+        if loadedBCSurface[0, 0] != 0:
+
+            # loop through surface load
+            for el in range(np.size(loadedBCSurface, 0)):
+
+                if loadedBCSurface[el, 0] == 1: # edgeX
+
+                    dof1 = 3 * int(loadedBCSurface[el, 1] + 1) - 3
+                    dof2 = 3 * int(loadedBCSurface[el, 2] + 1) - 3
+                    dof3 = 3 * int(loadedBCSurface[el, 3] + 1) - 3
+
+                    # projected surface on y-z plane
+                    crossX = (Y[int(loadedBCSurface[el, 2])] - Y[int(loadedBCSurface[el, 1])]) * \
+                             (Z[int(loadedBCSurface[el, 3])] - Z[int(loadedBCSurface[el, 1])]) - \
+                             (Y[int(loadedBCSurface[el, 3])] - Y[int(loadedBCSurface[el, 1])]) * \
+                             (Z[int(loadedBCSurface[el, 2])] - Z[int(loadedBCSurface[el, 1])])
+
+                    RHS[dof1] += crossX * loadStep * loadedBCSurface[el, 4] / 6
+                    RHS[dof2] += crossX * loadStep * loadedBCSurface[el, 4] / 6
+                    RHS[dof3] += crossX * loadStep * loadedBCSurface[el, 4] / 6
+
+                elif loadedBCSurface[el, 0] == 2: # edgeY
+
+                    dof1 = 3 * int(loadedBCSurface[el, 1] + 1) - 2
+                    dof2 = 3 * int(loadedBCSurface[el, 2] + 1) - 2
+                    dof3 = 3 * int(loadedBCSurface[el, 3] + 1) - 2
+
+                    # projected surface on x-z plane
+                    crossY = (X[int(loadedBCSurface[el, 3])] - X[int(loadedBCSurface[el, 1])]) * \
+                             (Z[int(loadedBCSurface[el, 2])] - Z[int(loadedBCSurface[el, 1])]) - \
+                             (X[int(loadedBCSurface[el, 2])] - X[int(loadedBCSurface[el, 1])]) * \
+                             (Z[int(loadedBCSurface[el, 3])] - Z[int(loadedBCSurface[el, 1])])
+
+                    RHS[dof1] += crossY * loadStep * loadedBCSurface[el, 4] / 6
+                    RHS[dof2] += crossY * loadStep * loadedBCSurface[el, 4] / 6
+                    RHS[dof3] += crossY * loadStep * loadedBCSurface[el, 4] / 6
+
+                elif loadedBCSurface[el, 0] == 3: # edgeZ
+
+                    dof1 = 3 * int(loadedBCSurface[el, 1] + 1) - 1
+                    dof2 = 3 * int(loadedBCSurface[el, 2] + 1) - 1
+                    dof3 = 3 * int(loadedBCSurface[el, 3] + 1) - 1
+
+                    # projected surface on x-y plane
+                    crossZ = (X[int(loadedBCSurface[el, 2])] - X[int(loadedBCSurface[el, 1])]) * \
+                             (Y[int(loadedBCSurface[el, 3])] - Y[int(loadedBCSurface[el, 1])]) - \
+                             (X[int(loadedBCSurface[el, 3])] - X[int(loadedBCSurface[el, 1])]) * \
+                             (Y[int(loadedBCSurface[el, 2])] - Y[int(loadedBCSurface[el, 1])])
+
+                    RHS[dof1] += crossZ * loadStep * loadedBCSurface[el, 4] / 6
+                    RHS[dof2] += crossZ * loadStep * loadedBCSurface[el, 4] / 6
+                    RHS[dof3] += crossZ * loadStep * loadedBCSurface[el, 4] / 6
 
     # if gravity is on and was computed, add it to pressure contribution
     if gravity == 1:
