@@ -206,7 +206,7 @@ cdef int solveTransient(object data) except -1:
                                                      g, i, wrinklingFlag, nPressurised, nFSI, state, force_vector,
                                                      P, theta_vec, wrinkling_iter, iter_goal, sigma_max,
                                                      pre_stress_cable, pre_strain_cable, pre_stress_membrane,
-                                                     pre_strain_membrane, pre_active, damper)
+                                                     pre_strain_membrane, pre_active, damper, data.aero)
 
     counter = 0
     data.time = 0
@@ -358,7 +358,7 @@ def firstOrderSystemNonlinear(t, qq, X, Y, Z, X0, Y0, Z0, Minv, Fint, RHS, RHS0,
                               J12Vec, E3, E2, nu, thickness, alpha, beta, thetaVec, Ew, order, indices, indptr,
                               data, diagK, wrinkling, g, i, wrinklingFlag, nPressurised, nFSI, state, force_vector,
                               P, theta_vec, wrinkling_iter, iter_goal, sigma_max, pre_stress_cable, pre_strain_cable,
-                              pre_stress_membrane, pre_strain_membrane, pre_active, damper):
+                              pre_stress_membrane, pre_strain_membrane, pre_active, damper, aero):
         """
         converts M a + C v + Fint(u) = F(u) into first order system for scipy solver
         and computes nodal acceleration uDotDot = Minv * (RHS - Fint) - alpha * uDot - beta * Minv * K * uDot
@@ -405,7 +405,7 @@ def firstOrderSystemNonlinear(t, qq, X, Y, Z, X0, Y0, Z0, Minv, Fint, RHS, RHS0,
                     nelemsMem, nelemsCable, nPressurised, nFSI, thickness, rho3, area2, rho2, g, Sx, Sy, Sz,
                     pFSI, loadedBCNodes, loadedBCEdges, loadedBCSurface, RHS0flag, 1, dim, force_vector, E2,
                     pre_stress_cable, pre_strain_cable, pre_stress_membrane, pre_strain_membrane,
-                    pre_active, J11Vec, J22Vec, J12Vec, thetaVec, E3, nu)
+                    pre_active, J11Vec, J22Vec, J12Vec, thetaVec, E3, nu, aero)
 
         if t == 0:
             for i in range(len(pre_active)):

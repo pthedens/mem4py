@@ -60,7 +60,7 @@ cdef int readMsh(object data) except -1:
     N1Read = []
     N2Read = []
     N3Read = []
-    setID = 23
+    setID = 25
     pressureID = []
     edgeX_ID = []
     edgeY_ID = []
@@ -193,10 +193,12 @@ cdef int readMsh(object data) except -1:
                     # 17 -> shearX
                     # 18 -> shearY
                     # 19 -> shearZ
-                    # 20 -> pressure
-                    # 21 -> pre_u
-                    # 22 -> pre_v
-                    # >= 23 -> element set
+                    # 20 -> edgeNormal    (2D only)
+                    # 21 -> edgeShear     (2D only)
+                    # 22 -> pressure
+                    # 23 -> pre_u
+                    # 24 -> pre_v
+                    # >= 25 -> element set
 
                     if name not in data.elStruc:
                         raise Exception("Set {} not defined in msh file.".format(name))
@@ -264,7 +266,7 @@ cdef int readMsh(object data) except -1:
                         elif data.elStruc[name]["type"] == "fixYZ":
                             IDmap[int(args[1]) - 1] = 10
                         elif data.elStruc[name]["type"] == "pre_u":
-                            IDmap[int(args[1]) - 1] = 21
+                            IDmap[int(args[1]) - 1] = 23
                         else:
                             raise Exception("No valid BC type found.")
                     elif data.elStruc[name]["set"] == "LOAD":
@@ -286,12 +288,16 @@ cdef int readMsh(object data) except -1:
                             IDmap[int(args[1]) - 1] = 18
                         elif data.elStruc[name]["type"] == "shearZ":
                             IDmap[int(args[1]) - 1] = 19
-                        elif data.elStruc[name]["type"] == "pressure":
+                        elif data.elStruc[name]["type"] == "edgeNormal":
                             IDmap[int(args[1]) - 1] = 20
+                        elif data.elStruc[name]["type"] == "edgeShear":
+                            IDmap[int(args[1]) - 1] = 21
+                        elif data.elStruc[name]["type"] == "pressure":
+                            IDmap[int(args[1]) - 1] = 22
                             pressureID.append(int(args[1]))
                             pressureMag.append(data.elStruc[name]["pressure"])
                         elif data.elStruc[name]["type"] == "damper":
-                            IDmap[int(args[1]) - 1] = 22
+                            IDmap[int(args[1]) - 1] = 23
                         else:
                             raise Exception("No valid LOAD type found.")
                     elif data.elStruc[name]["set"] == "SET":
@@ -333,7 +339,7 @@ cdef int readMsh(object data) except -1:
                         j = IDmap[int(args[3]) - 1]
                         i = int(args[5]) - 1
 
-                        if j > 23:
+                        if j > 24:
                             # save [physical ID, node number]
                             elSet1.append([int(args[3]), i])
                         elif j == 4:  # fixAll
@@ -405,7 +411,7 @@ cdef int readMsh(object data) except -1:
                         i = int(args[5]) - 1
                         k = int(args[6]) - 1
 
-                        if j > 21:
+                        if j > 24:
                             # save [pysical ID, node 1, node 2]
                             elSet2.append([int(args[3]), i, k])
                         elif j == 2 or j == 3:  # Cable element
@@ -488,9 +494,15 @@ cdef int readMsh(object data) except -1:
                         if j == 19:  # shearZ
                             f = data.elStruc[bnames[int(args[3])]]["shearZ"]
                             loadedBCEdgesRead.append([6, i, k, f])
-                        if j == 20:  # FSI
-                            loadedBCEdgesRead.append([7, i, k, 0])
-                        if j == 21:  # pre_u
+                        if j == 20:  # edgeNormal
+                            f = data.elStruc[bnames[int(args[3])]]["edgeNormal"]
+                            loadedBCEdgesRead.append([7, i, k, f])
+                        if j == 21:  # edgeShear
+                            f = data.elStruc[bnames[int(args[3])]]["edgeShear"]
+                            loadedBCEdgesRead.append([8, i, k, f])
+                        if j == 22:  # FSI
+                            loadedBCEdgesRead.append([9, i, k, 0])
+                        if j == 23:  # pre_u
                             if "pre_u" in data.elStruc[bnames[int(args[3])]].keys():
                                 pre_u_read.append([i,
                                                    data.elStruc[bnames[int(args[3])]]["pre_u"]])
@@ -601,7 +613,7 @@ cdef int readMsh(object data) except -1:
                         if j == 19:  # shearZ
                             f = data.elStruc[bnames[int(args[3])]]["shearZ"]
                             loadedBCSurfaceRead.append([6, i, k, q, f])
-                        elif j == 20:  # pressure
+                        elif j == 22:  # pressure
                             N3Read.append([j, i, k, q, int(args[3])])
 
                     else:

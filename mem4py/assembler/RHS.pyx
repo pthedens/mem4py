@@ -11,6 +11,7 @@ cdef extern from "math.h":
     double fabs(double m)
     double sin(double m)
     double cos(double m)
+    double atan2(double m, double n)
 
 
 cdef int assembleRHS(double [:] X,
@@ -58,7 +59,8 @@ cdef int assembleRHS(double [:] X,
                      long double [:] J12Vec,
                      double [:] thetaVec,
                      double [:] E3,
-                     double [:] nu) except -1:
+                     double [:] nu,
+                     object aero) except -1:
     """Assemble RHS from all load sources for Dynamic Relaxation solver
     
     assemble RHS0 and RHS. RHS0 is due to constant loads. RHS = RHS0 + RHS(due to follower load)
@@ -75,8 +77,8 @@ cdef int assembleRHS(double [:] X,
         
     """
     cdef:
-        Py_ssize_t el, dof1, dof2, dof3
-        double fx, fy, fz, crossX, crossY, crossZ, area, l, dx, dy
+        Py_ssize_t el, dof1, dof2
+        double fx, fy, fz, crossX, crossY, crossZ, area, l, dx, dy, dz, L, alpha, theta
 
         unsigned int [:] allDofCable = np.zeros(2 * dim, dtype=np.uintc)
         unsigned int [:] allDofMem = np.zeros(3 * dim, dtype=np.uintc)
@@ -210,7 +212,7 @@ cdef int assembleRHS(double [:] X,
                 # TODO: constant edge length?
                 # TODO: membrane thickness vs. cable thickness for integration?
 
-                if loadedBCEdges[el, 0] == 1: # normalX
+                if loadedBCEdges[el, 0] == 1: # edgeX
 
                     dof1 = 2 * int(loadedBCEdges[el, 1] + 1) - 2
                     dof2 = 2 * int(loadedBCEdges[el, 2] + 1) - 2
@@ -220,7 +222,7 @@ cdef int assembleRHS(double [:] X,
                     RHS[dof1] += loadStep * dy * loadedBCEdges[el, 3] / 2
                     RHS[dof2] += loadStep * dy * loadedBCEdges[el, 3] / 2
 
-                elif loadedBCEdges[el, 0] == 2: # normalY
+                elif loadedBCEdges[el, 0] == 2: # edgeY
 
                     dof1 = 2 * int(loadedBCEdges[el, 1] + 1) - 1
                     dof2 = 2 * int(loadedBCEdges[el, 2] + 1) - 1
@@ -249,6 +251,38 @@ cdef int assembleRHS(double [:] X,
 
                     RHS[dof1] += loadStep * dy * loadedBCEdges[el, 3] / 2
                     RHS[dof2] += loadStep * dy * loadedBCEdges[el, 3] / 2
+
+                elif loadedBCEdges[el, 0] == 7:  # edgeNormal
+
+                    # Find degrees of freedom from current element
+                    allDofCable[0] = 2 * int(loadedBCEdges[el, 1] + 1) - 2  # x1
+                    allDofCable[1] = 2 * int(loadedBCEdges[el, 1] + 1) - 1  # y1
+                    allDofCable[2] = 2 * int(loadedBCEdges[el, 2] + 1) - 2  # x2
+                    allDofCable[3] = 2 * int(loadedBCEdges[el, 2] + 1) - 1  # y2
+
+                    dy = fabs(Y[int(loadedBCEdges[el, 2])] - Y[int(loadedBCEdges[el, 1])])
+                    dx = fabs(X[int(loadedBCEdges[el, 2])] - X[int(loadedBCEdges[el, 1])])
+
+                    RHS[allDofCable[0]] -= loadStep * dy * loadedBCEdges[el, 3] / 2  # x1
+                    RHS[allDofCable[1]] += loadStep * dx * loadedBCEdges[el, 3] / 2  # y1
+                    RHS[allDofCable[2]] -= loadStep * dy * loadedBCEdges[el, 3] / 2  # x2
+                    RHS[allDofCable[3]] += loadStep * dx * loadedBCEdges[el, 3] / 2  # y2
+
+                elif loadedBCEdges[el, 0] == 8:  # edgeShear
+
+                    # Find degrees of freedom from current element
+                    allDofCable[0] = 2 * int(loadedBCEdges[el, 1] + 1) - 2  # x1
+                    allDofCable[1] = 2 * int(loadedBCEdges[el, 1] + 1) - 1  # y1
+                    allDofCable[2] = 2 * int(loadedBCEdges[el, 2] + 1) - 2  # x2
+                    allDofCable[3] = 2 * int(loadedBCEdges[el, 2] + 1) - 1  # y2
+
+                    dy = fabs(Y[int(loadedBCEdges[el, 2])] - Y[int(loadedBCEdges[el, 1])])
+                    dx = fabs(X[int(loadedBCEdges[el, 2])] - X[int(loadedBCEdges[el, 1])])
+
+                    RHS[allDofCable[0]] += loadStep * dx * loadedBCEdges[el, 3] / 2  # x1
+                    RHS[allDofCable[1]] += loadStep * dy * loadedBCEdges[el, 3] / 2  # y1
+                    RHS[allDofCable[2]] += loadStep * dx * loadedBCEdges[el, 3] / 2  # x2
+                    RHS[allDofCable[3]] += loadStep * dy * loadedBCEdges[el, 3] / 2  # y2
 
                 # # constant load in x and y-direction with Sx, Sy magnitude (FSI in BC definition)
                 # elif loadedBCEdges[el, 0] == 4:
@@ -319,7 +353,7 @@ cdef int assembleRHS(double [:] X,
                     dof1 = 3 * int(loadedBCNodes[el, 1] + 1) - 1
                     RHS[dof1] += loadStep * loadedBCNodes[el, 2]
 
-        # Compute edge load contributions on C3 element (edgeX, edgeY, edgeZ, edgeNormal)
+        # Compute edge load contributions (edgeX, edgeY, edgeZ, edgeNormal)
         if loadedBCEdges[0, 0] != 0:
 
             # loop through nodal loads
@@ -367,17 +401,43 @@ cdef int assembleRHS(double [:] X,
                     RHS[dof1] += crossZ * loadStep * loadedBCEdges[el, 3] / 2
                     RHS[dof2] += crossZ * loadStep * loadedBCEdges[el, 3] / 2
 
-                elif loadedBCEdges[el, 0] == 4: # shearX
+                elif loadedBCEdges[el, 0] == 4: # aeroX
 
                     dof1 = 3 * int(loadedBCEdges[el, 1] + 1) - 3
                     dof2 = 3 * int(loadedBCEdges[el, 2] + 1) - 3
 
-                    dx = fabs(X[int(loadedBCEdges[el, 2])] - X[int(loadedBCEdges[el, 1])])
+                    dz = abs(Z[int(loadedBCEdges[el, 2])] - Z[int(loadedBCEdges[el, 1])])
+                    dx = abs(X[int(loadedBCEdges[el, 2])] - X[int(loadedBCEdges[el, 1])])
 
-                    RHS[dof1] += loadStep * dx * loadedBCEdges[el, 3] / 2
-                    RHS[dof2] += loadStep * dx * loadedBCEdges[el, 3] / 2
+                    alpha = aero['AoA']*np.pi/180
+                    
+                    if dx < 0 and dz > 0:
+                        beta = np.arctan2(dz,-dx)
+                    elif dx > 0 and dz < 0:
+                        beta = np.arctan2(-dz,dx)
+                    elif dx > 0 and dz > 0:
+                        beta = np.arctan2(dz,-dx)
+                    elif dx < 0 and dz < 0:
+                        beta = np.arctan2(-dz,dx)
+                    elif dz == 0:
+                        beta = 0
+                    else:
+                        beta = np.pi / 2
 
-                elif loadedBCEdges[el, 0] == 5: # shearY
+                    # aero coefficient X
+                    Cx = cos(alpha)*(aero['Cn']*sin(alpha + beta)**3 + aero['Ct']) - aero['Cn']*cos(alpha + beta)*sin(alpha + beta)**2*sin(alpha)
+
+                    # loadedBCEdges[el, 3] = diameter * rho * V_magnitude_average_over_line_length**2
+                    RHS[dof1] += loadStep * loadedBCEdges[el, 3] * Cx * dz / 4
+                    RHS[dof2] += loadStep * loadedBCEdges[el, 3] * Cx * dz / 4
+
+                    # shearX
+                    # dx = fabs(X[int(loadedBCEdges[el, 2])] - X[int(loadedBCEdges[el, 1])])
+
+                    # RHS[dof1] += loadStep * dx * loadedBCEdges[el, 3] / 2
+                    # RHS[dof2] += loadStep * dx * loadedBCEdges[el, 3] / 2
+
+                elif loadedBCEdges[el, 0] == 5: # aeroY
 
                     dof1 = 3 * int(loadedBCEdges[el, 1] + 1) - 2
                     dof2 = 3 * int(loadedBCEdges[el, 2] + 1) - 2
@@ -387,15 +447,43 @@ cdef int assembleRHS(double [:] X,
                     RHS[dof1] += loadStep * dy * loadedBCEdges[el, 3] / 2
                     RHS[dof2] += loadStep * dy * loadedBCEdges[el, 3] / 2
 
-                elif loadedBCEdges[el, 0] == 6: # shearZ
+                elif loadedBCEdges[el, 0] == 6: # aeroZ
 
                     dof1 = 3 * int(loadedBCEdges[el, 1] + 1) - 1
                     dof2 = 3 * int(loadedBCEdges[el, 2] + 1) - 1
 
-                    dy = fabs(Z[int(loadedBCEdges[el, 2])] - Z[int(loadedBCEdges[el, 1])])
+                    dz = abs(Z[int(loadedBCEdges[el, 2])] - Z[int(loadedBCEdges[el, 1])])
+                    dx = abs(X[int(loadedBCEdges[el, 2])] - X[int(loadedBCEdges[el, 1])])
 
-                    RHS[dof1] += loadStep * dy * loadedBCEdges[el, 3] / 2
-                    RHS[dof2] += loadStep * dy * loadedBCEdges[el, 3] / 2
+                    alpha = aero['AoA']*np.pi/180
+                    
+                    if dx < 0 and dz > 0:
+                        beta = np.arctan2(dz,-dx)
+                    elif dx > 0 and dz < 0:
+                        beta = np.arctan2(-dz,dx)
+                    elif dx > 0 and dz > 0:
+                        beta = np.arctan2(dz,-dx)
+                    elif dx < 0 and dz < 0:
+                        beta = np.arctan2(-dz,dx)
+                    elif dz == 0:
+                        beta = 0
+                    else:
+                        beta = np.pi / 2
+
+                    # aero coefficient Z
+                    Cz = sin(alpha)*(aero['Cn']*sin(alpha + beta)**3 + aero['Ct']) + aero['Cn']*cos(alpha + beta)*sin(alpha + beta)**2*cos(alpha)
+
+                    # loadedBCEdges[el, 3] = diameter * rho * V_magnitude_average_over_line_length**2
+                    RHS[dof1] += loadStep * loadedBCEdges[el, 3] * Cz * dx / 4
+                    RHS[dof2] += loadStep * loadedBCEdges[el, 3] * Cz * dx / 4
+
+                    # dof1 = 3 * int(loadedBCEdges[el, 1] + 1) - 1
+                    # dof2 = 3 * int(loadedBCEdges[el, 2] + 1) - 1
+
+                    # dy = fabs(Z[int(loadedBCEdges[el, 2])] - Z[int(loadedBCEdges[el, 1])])
+
+                    # RHS[dof1] += loadStep * dy * loadedBCEdges[el, 3] / 2
+                    # RHS[dof2] += loadStep * dy * loadedBCEdges[el, 3] / 2
 
                 # # constant load in x, y and z-direction with Sx, Sy, Sz magnitude (FSI in BC definition)
                 # elif loadedBCEdges[el, 0] == 4:
@@ -494,7 +582,7 @@ cdef int assembleRHS(double [:] X,
                      (X[NMem[elPressurised[el], 3]] - X[NMem[elPressurised[el], 1]]) * \
                      (Y[NMem[elPressurised[el], 2]] - Y[NMem[elPressurised[el], 1]])
 
-            # force components (pressure = p/6 * cross, stressX = Sx * A / 3) Dissertation Valdez 2007 pp. 52
+            # force components (pressure = p/6 * cross, stressX = Sx * A / 3)
             fx = loadStep * crossX * p[el] / 6
             fy = loadStep * crossY * p[el] / 6
             fz = loadStep * crossZ * p[el] / 6

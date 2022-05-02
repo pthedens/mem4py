@@ -175,6 +175,10 @@ class Mem4py:
         # setNames
         self.setNames = []
 
+        self.N1set = []
+        self.N2set = []
+        self.N3set = []
+
         self.output_dir = []
 
         # constant force vector directly added to RHS, len(ndof)
@@ -508,6 +512,12 @@ class Mem4py:
 
         # save field variable
         self.save_Z = []
+
+        # aero input
+        self.aero = dict()
+        self.aero['AoA'] = 0
+        self.aero['Cn'] = 0
+        self.aero['Ct'] = 0
 
         # read msh
         self.readMesh()

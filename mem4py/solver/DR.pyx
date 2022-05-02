@@ -151,6 +151,9 @@ cdef int solveKDR(object data) except -1:
 
         unsigned int [:] pre_active = data.pre_active
 
+    # aero input
+    aero = data.aero
+
     # check if gravity is active
     if data.gravity is False:
         gravity = 0
@@ -219,7 +222,7 @@ cdef int solveKDR(object data) except -1:
                 nelemsMem, nelemsCable, nPressurised, nFSI, t, rho3, area2, rho2, g, Sx, Sy, Sz,
                 pFSI, loadedBCNodes, loadedBCEdges, loadedBCSurface, 0, 1 / data.solverOptions["nLoadSteps"], dim, force_vector, E2,
                 pre_stress_cable, pre_strain_cable, pre_stress_membrane, pre_strain_membrane,
-                pre_active, J11Vec, J22Vec, J12Vec, thetaVec, E3, nu)
+                pre_active, J11Vec, J22Vec, J12Vec, thetaVec, E3, nu, aero)
 
     RHS0flag = 1
 
@@ -247,7 +250,7 @@ cdef int solveKDR(object data) except -1:
                         nelemsMem, nelemsCable, nPressurised, nFSI, t, rho3, area2, rho2, g, Sx, Sy, Sz,
                         pFSI, loadedBCNodes, loadedBCEdges, loadedBCSurface, 0, loadStep, dim, force_vector, E2,
                         pre_stress_cable, pre_strain_cable, pre_stress_membrane, pre_strain_membrane,
-                        pre_active, J11Vec, J22Vec, J12Vec, thetaVec, E3, nu)
+                        pre_active, J11Vec, J22Vec, J12Vec, thetaVec, E3, nu, aero)
 
             if follower_pressure is True:
                 for i in range(len(p)):
@@ -298,7 +301,7 @@ cdef int solveKDR(object data) except -1:
                                 nelemsMem, nelemsCable, nPressurised, nFSI, t, rho3, area2, rho2, g, Sx, Sy, Sz,
                                 pFSI, loadedBCNodes, loadedBCEdges, loadedBCSurface, 0, loadStep, dim, force_vector, E2,
                                 pre_stress_cable, pre_strain_cable, pre_stress_membrane, pre_strain_membrane,
-                                pre_active, J11Vec, J22Vec, J12Vec, thetaVec, E3, nu)
+                                pre_active, J11Vec, J22Vec, J12Vec, thetaVec, E3, nu, aero)
 
                 assemble_M_DR(M, Minv, X, Y, Z, NMem, NCable, J11Vec, J22Vec, J12Vec,
                               nelemsMem, nelemsCable, ndof, nPressurised, nFSI, E3, E2, nu,
@@ -389,7 +392,7 @@ cdef int solveKDR(object data) except -1:
                                 nelemsMem, nelemsCable, nPressurised, nFSI, t, rho3, area2, rho2, g, Sx, Sy, Sz,
                                 pFSI, loadedBCNodes, loadedBCEdges, loadedBCSurface, 0, loadStep, dim, force_vector, E2,
                                 pre_stress_cable, pre_strain_cable, pre_stress_membrane, pre_strain_membrane,
-                                pre_active, J11Vec, J22Vec, J12Vec, thetaVec, E3, nu)
+                                pre_active, J11Vec, J22Vec, J12Vec, thetaVec, E3, nu, aero)
 
                 # Determine residual R at current time step from internal force vector (global)
                 subtract_vv(RHS, Fint, R)

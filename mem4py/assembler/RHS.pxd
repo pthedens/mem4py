@@ -44,7 +44,8 @@ cdef int assembleRHS(double [:] X,
                      long double [:] J12Vec,
                      double [:] thetaVec,
                      double [:] E3,
-                     double [:] nu) except -1
+                     double [:] nu,
+                     object aero) except -1
 
 
 cdef int pre_membrane_2d(double [:] RHS,
