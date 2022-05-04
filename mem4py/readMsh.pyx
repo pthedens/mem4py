@@ -193,8 +193,8 @@ cdef int readMsh(object data) except -1:
                     # 17 -> shearX
                     # 18 -> shearY
                     # 19 -> shearZ
-                    # 20 -> edgeNormal    (2D only)
-                    # 21 -> edgeShear     (2D only)
+                    # 20 -> edgeNormal
+                    # 21 -> edgeShear
                     # 22 -> pressure
                     # 23 -> pre_u
                     # 24 -> pre_v
@@ -613,6 +613,12 @@ cdef int readMsh(object data) except -1:
                         if j == 19:  # shearZ
                             f = data.elStruc[bnames[int(args[3])]]["shearZ"]
                             loadedBCSurfaceRead.append([6, i, k, q, f])
+                        # if j == 20:  # edgeNormal
+                        #     f = data.elStruc[bnames[int(args[3])]]["edgeNormal"]
+                        #     loadedBCSurfaceRead.append([7, i, k, q, f])
+                        # if j == 21:  # edgeShear
+                        #     f = data.elStruc[bnames[int(args[3])]]["edgeShear"]
+                        #     loadedBCSurfaceRead.append([8, i, k, q, f])
                         elif j == 22:  # pressure
                             N3Read.append([j, i, k, q, int(args[3])])
 

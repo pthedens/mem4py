@@ -260,13 +260,13 @@ cdef int assembleRHS(double [:] X,
                     allDofCable[2] = 2 * int(loadedBCEdges[el, 2] + 1) - 2  # x2
                     allDofCable[3] = 2 * int(loadedBCEdges[el, 2] + 1) - 1  # y2
 
-                    dy = fabs(Y[int(loadedBCEdges[el, 2])] - Y[int(loadedBCEdges[el, 1])])
-                    dx = fabs(X[int(loadedBCEdges[el, 2])] - X[int(loadedBCEdges[el, 1])])
+                    dy = Y[int(loadedBCEdges[el, 2])] - Y[int(loadedBCEdges[el, 1])]
+                    dx = X[int(loadedBCEdges[el, 2])] - X[int(loadedBCEdges[el, 1])]
 
-                    RHS[allDofCable[0]] -= loadStep * dy * loadedBCEdges[el, 3] / 2  # x1
-                    RHS[allDofCable[1]] += loadStep * dx * loadedBCEdges[el, 3] / 2  # y1
-                    RHS[allDofCable[2]] -= loadStep * dy * loadedBCEdges[el, 3] / 2  # x2
-                    RHS[allDofCable[3]] += loadStep * dx * loadedBCEdges[el, 3] / 2  # y2
+                    RHS[allDofCable[0]] += loadStep * dy * loadedBCEdges[el, 3] / 2  # x1
+                    RHS[allDofCable[1]] -= loadStep * dx * loadedBCEdges[el, 3] / 2  # y1
+                    RHS[allDofCable[2]] += loadStep * dy * loadedBCEdges[el, 3] / 2  # x2
+                    RHS[allDofCable[3]] -= loadStep * dx * loadedBCEdges[el, 3] / 2  # y2
 
                 elif loadedBCEdges[el, 0] == 8:  # edgeShear
 
@@ -276,13 +276,14 @@ cdef int assembleRHS(double [:] X,
                     allDofCable[2] = 2 * int(loadedBCEdges[el, 2] + 1) - 2  # x2
                     allDofCable[3] = 2 * int(loadedBCEdges[el, 2] + 1) - 1  # y2
 
-                    dy = fabs(Y[int(loadedBCEdges[el, 2])] - Y[int(loadedBCEdges[el, 1])])
-                    dx = fabs(X[int(loadedBCEdges[el, 2])] - X[int(loadedBCEdges[el, 1])])
+                    dy = Y[int(loadedBCEdges[el, 2])] - Y[int(loadedBCEdges[el, 1])]
+                    dx = X[int(loadedBCEdges[el, 2])] - X[int(loadedBCEdges[el, 1])]
 
                     RHS[allDofCable[0]] += loadStep * dx * loadedBCEdges[el, 3] / 2  # x1
                     RHS[allDofCable[1]] += loadStep * dy * loadedBCEdges[el, 3] / 2  # y1
                     RHS[allDofCable[2]] += loadStep * dx * loadedBCEdges[el, 3] / 2  # x2
                     RHS[allDofCable[3]] += loadStep * dy * loadedBCEdges[el, 3] / 2  # y2
+
 
                 # # constant load in x and y-direction with Sx, Sy magnitude (FSI in BC definition)
                 # elif loadedBCEdges[el, 0] == 4:
