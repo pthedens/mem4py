@@ -9,7 +9,7 @@ from pathlib import Path
 useCython = True
 
 APPNAME = "mem4py"
-APPVERSION = "1.0.1"
+APPVERSION = "1.0.2"
 
 if os.name == 'nt':
     EIGEN_PATH = Path(r'C:\Program Files\eigen3')
@@ -54,6 +54,11 @@ setup(
     packages=find_packages(where='mem4py'),
     # packages=['mem4py', 'mem4py/assembler', 'mem4py/ceygen',
     #           'mem4py/solver', 'mem4py/helper', 'mem4py/elements']
+    install_requires=[
+        'cython',
+        'numpy',
+        'colorama',
+        'scipy',
+        'matplotlib'
+    ]
 )
-
-print("********CYTHON COMPLETE******")

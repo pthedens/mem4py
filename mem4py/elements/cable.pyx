@@ -9,6 +9,10 @@ from libc.math cimport sqrt
 from libcpp.vector cimport vector
 
 
+@cython.profile(False)
+@cython.cdivision(True)
+@cython.wraparound(False)
+@cython.nonecheck(False)
 cdef int cable2DCauchyStress(double [:] X,
                              double [:] Y,
                              int [:, ::1] N,
@@ -51,6 +55,10 @@ cdef int cable2DCauchyStress(double [:] X,
         stressCable[0] = 0
 
 
+@cython.profile(False)
+@cython.cdivision(True)
+@cython.wraparound(False)
+@cython.nonecheck(False)
 cdef int cable2DFintAndK(double [:] X,
                          double [:] Y,
                          int [:, ::1] N,
@@ -151,6 +159,10 @@ cdef int cable2DFintAndK(double [:] X,
     strainEnergy[0] = L0 * area * strainCable * strainCable * E
 
 
+@cython.profile(False)
+@cython.cdivision(True)
+@cython.wraparound(False)
+@cython.nonecheck(False)
 cdef int cable2D_internal_force_vector(double [:] X,
                                        double [:] Y,
                                        int [:, ::1] N,
@@ -202,6 +214,10 @@ cdef int cable2D_internal_force_vector(double [:] X,
         Fint[dof_4] += Y21 * f
 
 
+@cython.profile(False)
+@cython.cdivision(True)
+@cython.wraparound(False)
+@cython.nonecheck(False)
 cdef int cable3DCauchyStress(double [:] X,
                              double [:] Y,
                              double [:] Z,
@@ -248,6 +264,10 @@ cdef int cable3DCauchyStress(double [:] X,
         stressCable[0] = ECable * strainCable[0] * L / L0
 
 
+@cython.profile(False)
+@cython.cdivision(True)
+@cython.wraparound(False)
+@cython.nonecheck(False)
 cdef int cable3DFintAndK(double [:] X,
                          double [:] Y,
                          double [:] Z,
@@ -378,6 +398,10 @@ cdef int cable3DFintAndK(double [:] X,
     SE[0] = areaCable * L0 * strainCable * strainCable * E
 
 
+@cython.profile(False)
+@cython.cdivision(True)
+@cython.wraparound(False)
+@cython.nonecheck(False)
 cdef int cable3D_internal_force_vector(double [:] X,
                                        double [:] Y,
                                        double [:] Z,
@@ -433,6 +457,10 @@ cdef int cable3D_internal_force_vector(double [:] X,
         Fint[dof_6] += Z21 * f
 
 
+@cython.profile(False)
+@cython.cdivision(True)
+@cython.wraparound(False)
+@cython.nonecheck(False)
 cdef int cableStrainGreen(double L, double L0, double * strainCable) nogil:
     """
     compute Green's strain for single element

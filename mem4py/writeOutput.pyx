@@ -77,6 +77,7 @@ cdef int writeVTK(object data) except -1:
         double [:] L0 = data.LCable
 
         double [:] dofFixedWrite = np.zeros(ndof, dtype=np.double)
+        double [:] velocityVector = np.zeros(ndof, dtype=np.double)
 
         double [:] VMS = np.zeros(nelemsMem + nelemsCable, dtype=np.double)
         double [:] S1 = np.zeros(nelemsMem + nelemsCable, dtype=np.double)
@@ -215,6 +216,34 @@ cdef int writeVTK(object data) except -1:
         state[index] = state_mem[el]
         index += 1
 
+    # aero velocity on line elements
+    cdef unsigned int element_id
+
+    index = 0
+    loadedBCEdges = np.asarray(data.loadedBCEdges)
+
+    for el in range(len(loadedBCEdges)):
+
+        if data.loadedBCEdges[el, 0] == 9: # aero
+
+            # first node
+            velocityVector[dim*(int(loadedBCEdges[el, 1])+1)-dim] += \
+                data.aero['Vx'][el] / 2
+            velocityVector[dim*(int(loadedBCEdges[el, 1])+1)-dim+1] += \
+                data.aero['Vy'][el] / 2
+            if dim == 3:
+                velocityVector[dim*(int(loadedBCEdges[el, 1])+1)-dim+2] += \
+                    data.aero['Vz'][el] / 2
+
+            # second node
+            velocityVector[dim*(int(loadedBCEdges[el, 2])+1)-dim] += \
+                data.aero['Vx'][el] / 2
+            velocityVector[dim*(int(loadedBCEdges[el, 2])+1)-dim+1] += \
+                data.aero['Vy'][el] / 2
+            if dim == 3:
+                velocityVector[dim*(int(loadedBCEdges[el, 2])+1)-dim+2] += \
+                    data.aero['Vz'][el] / 2
+
     # save field properties in class object mem4py as numpy array
     # TODO this causes a bug when analysis is restarted...
     # data.X0 = np.asarray(X0)
@@ -319,6 +348,9 @@ cdef int writeVTK(object data) except -1:
                 # Write external load vector (right hand side)
                 writeVectorNode2D(RHS, nnodes, 'F_external', fout)
 
+                # Write external aerodynamic velocity vector
+                writeVectorNode2D(velocityVector, nnodes, 'V_aero', fout)
+
                 # # Write internal load vector (left hand side)
                 # writeVectorNode2D(Fint, nnodes, 'F_internal', fout)
 
@@ -341,6 +373,9 @@ cdef int writeVTK(object data) except -1:
 
                 # Write external load vector (right hand side)
                 writeVectorNode3D(RHS, nnodes, 'F_external', fout)
+
+                # Write external aerodynamic velocity vector
+                writeVectorNode3D(velocityVector, nnodes, 'V_aero', fout)
 
                 # Write residual vector (RHS - LHS)
                 writeVectorNode3D(R, nnodes, 'F_residual', fout)

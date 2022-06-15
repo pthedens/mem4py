@@ -78,7 +78,8 @@ cdef int assembleRHS(double [:] X,
     """
     cdef:
         Py_ssize_t el, dof1, dof2
-        double fx, fy, fz, crossX, crossY, crossZ, area, l, dx, dy, dz, L, alpha, theta
+        double fx, fy, fz, crossX, crossY, crossZ, area, l
+        double dx, dy, dz, L, alpha, theta, Cl, Cd, Cx, Cy, Cz
 
         unsigned int [:] allDofCable = np.zeros(2 * dim, dtype=np.uintc)
         unsigned int [:] allDofMem = np.zeros(3 * dim, dtype=np.uintc)
@@ -87,6 +88,7 @@ cdef int assembleRHS(double [:] X,
 
     # if gravity is on and has not been computed before
     if gravity == 1 and RHS0flag == 0:
+
 
         if dim == 2:
 
@@ -284,6 +286,58 @@ cdef int assembleRHS(double [:] X,
                     RHS[allDofCable[2]] += loadStep * dx * loadedBCEdges[el, 3] / 2  # x2
                     RHS[allDofCable[3]] += loadStep * dy * loadedBCEdges[el, 3] / 2  # y2
 
+                elif loadedBCEdges[el, 0] == 9:  # aero
+
+                    # Find degrees of freedom from current element
+                    allDofCable[0] = 2 * int(loadedBCEdges[el, 1] + 1) - 2  # x1
+                    allDofCable[1] = 2 * int(loadedBCEdges[el, 1] + 1) - 1  # y1
+                    allDofCable[2] = 2 * int(loadedBCEdges[el, 2] + 1) - 2  # x2
+                    allDofCable[3] = 2 * int(loadedBCEdges[el, 2] + 1) - 1  # y2
+
+                    dy = Y[int(loadedBCEdges[el, 2])] - Y[int(loadedBCEdges[el, 1])]
+                    dx = X[int(loadedBCEdges[el, 2])] - X[int(loadedBCEdges[el, 1])]
+                    l = sqrt(dx*dx+dy*dy)
+
+                    # local angle of attack
+                    n_line = np.array([dx, dy])
+                    n_flow = np.array([aero['Vx'][el], aero['Vy'][el]])
+                    n_x = np.array([1, 0])
+
+                    theta = np.pi - np.arccos(np.dot(n_line,n_flow)/ \
+                        (np.linalg.norm(n_flow)*np.linalg.norm(n_line)))
+
+                    # print("n_line = {}".format(n_line))
+                    # print("n_flow = {}".format(n_flow))
+                    # print("alpha = {}".format(theta*180/np.pi))
+
+                    # lift and drag coefficients
+                    Cl = aero['Cn']*cos(theta)*sin(theta)**2
+                    Cd = aero['Cn']*sin(theta)**3 + \
+                                      np.pi*aero['Ct']
+
+                    # angle between flow and x-axis
+                    theta = np.arccos(np.dot(n_x,n_flow)/ \
+                        (np.linalg.norm(n_flow)))
+
+                    if aero['Vy'][el] < 0:
+                        theta *= -1
+
+                    # rotate to x,y coordinates
+                    Cx = np.cos(theta) * Cd - np.sin(theta) * Cl
+                    Cy = np.sin(theta) * Cd + np.cos(theta) * Cl
+
+                    # print("Cl = {}".format(Cl))
+                    # print("Cd = {}".format(Cd))
+                    # print("theta = {}".format(theta*180/np.pi))
+                    # print("Cx = {}".format(Cx))
+                    # print("Cy = {}".format(Cy))
+                    
+                    # loadedBCEdges[el, 3] = diameter * rho * V_magnitude_average_over_line_length**2
+                    RHS[allDofCable[0]] += loadStep * Cx * l * loadedBCEdges[el, 3] / 2  # x1
+                    RHS[allDofCable[1]] += loadStep * Cy * l * loadedBCEdges[el, 3] / 2  # y1
+                    RHS[allDofCable[2]] += loadStep * Cx * l * loadedBCEdges[el, 3] / 2  # x2
+                    RHS[allDofCable[3]] += loadStep * Cy * l * loadedBCEdges[el, 3] / 2  # y2
+
 
                 # # constant load in x and y-direction with Sx, Sy magnitude (FSI in BC definition)
                 # elif loadedBCEdges[el, 0] == 4:
@@ -402,89 +456,71 @@ cdef int assembleRHS(double [:] X,
                     RHS[dof1] += crossZ * loadStep * loadedBCEdges[el, 3] / 2
                     RHS[dof2] += crossZ * loadStep * loadedBCEdges[el, 3] / 2
 
-                elif loadedBCEdges[el, 0] == 4: # aeroX
+                elif loadedBCEdges[el, 0] == 4:  # shearX
+                    raise Exception('Load shearX not implented in 3D')
+                elif loadedBCEdges[el, 0] == 5:  # shearY
+                    raise Exception('Load shearY not implented in 3D')
+                elif loadedBCEdges[el, 0] == 6:  # shearZ
+                    raise Exception('Load shearZ not implented in 3D')
+                elif loadedBCEdges[el, 0] == 7:  # edgeNormal
+                    raise Exception('Load shearZ not implented in 3D')
+                elif loadedBCEdges[el, 0] == 8:  # edgeShear
+                    raise Exception('Load shearZ not implented in 3D')
+                elif loadedBCEdges[el, 0] == 9:  # aero
 
-                    dof1 = 3 * int(loadedBCEdges[el, 1] + 1) - 3
-                    dof2 = 3 * int(loadedBCEdges[el, 2] + 1) - 3
+                    # Find degrees of freedom from current element
+                    allDofCable[0] = 3 * int(loadedBCEdges[el, 1] + 1) - 3  # x1
+                    allDofCable[1] = 3 * int(loadedBCEdges[el, 1] + 1) - 2  # y1
+                    allDofCable[2] = 3 * int(loadedBCEdges[el, 2] + 1) - 1  # z1
+                    allDofCable[3] = 3 * int(loadedBCEdges[el, 2] + 1) - 3  # x2
+                    allDofCable[4] = 3 * int(loadedBCEdges[el, 3] + 1) - 2  # y2
+                    allDofCable[5] = 3 * int(loadedBCEdges[el, 3] + 1) - 1  # z2
 
-                    dz = abs(Z[int(loadedBCEdges[el, 2])] - Z[int(loadedBCEdges[el, 1])])
-                    dx = abs(X[int(loadedBCEdges[el, 2])] - X[int(loadedBCEdges[el, 1])])
+                    dx = X[int(loadedBCEdges[el, 2])] - X[int(loadedBCEdges[el, 1])]
+                    dy = Y[int(loadedBCEdges[el, 2])] - Y[int(loadedBCEdges[el, 1])]
+                    dz = Z[int(loadedBCEdges[el, 2])] - Z[int(loadedBCEdges[el, 1])]
+                    l = sqrt(dx*dx+dy*dy+dz*dz)
 
-                    alpha = aero['AoA']*np.pi/180
+                    # horizontal vector w.r.t. flow and line element
+                    n_line = np.array([dx, dy, dz])
+                    e_line = n_line / np.linalg.norm(n_line)
+                    n_flow = np.array([aero['Vx'][el], aero['Vy'][el], aero['Vz'][el]])
+                    e_flow = n_flow / np.linalg.norm(n_flow)
+                    e_lat = np.cross(e_line, e_flow)
+                    e_hor = np.cross(e_lat, e_line)
+                    e_vert = np.cross(e_lat, e_hor)
+
+                    alpha = np.arccos(np.dot(e_hor, e_flow))
+                    theta = alpha + np.pi / 2
+
+                    print("e_line = {}".format(e_line))
+                    print("e_flow = {}".format(e_flow))
+                    print("e_lat = {}".format(e_lat))
+                    print("e_hor = {}".format(e_hor))
+                    print("alpha = {}".format(theta*180/np.pi))
+
+                    # lift and drag coefficients
+                    Cl = aero['Cn']*cos(theta)*sin(theta)**2
+                    Cd = aero['Cn']*sin(theta)**3 + np.pi*aero['Ct']
+
+                    # rotate to x,y,z coordinates
+                    Cx = e_flow[0] * Cl + e_vert[0] * Cd
+                    Cy = e_flow[1] * Cl + e_vert[1] * Cd
+                    Cz = e_flow[2] * Cl + e_vert[2] * Cd
+
+                    print("Cl = {}".format(Cl))
+                    print("Cd = {}".format(Cd))
+                    print("Cx = {}".format(Cx))
+                    print("Cy = {}".format(Cy))
+                    print("Cz = {}".format(Cz))
                     
-                    if dx < 0 and dz > 0:
-                        beta = np.arctan2(dz,-dx)
-                    elif dx > 0 and dz < 0:
-                        beta = np.arctan2(-dz,dx)
-                    elif dx > 0 and dz > 0:
-                        beta = np.arctan2(dz,-dx)
-                    elif dx < 0 and dz < 0:
-                        beta = np.arctan2(-dz,dx)
-                    elif dz == 0:
-                        beta = 0
-                    else:
-                        beta = np.pi / 2
-
-                    # aero coefficient X
-                    Cx = cos(alpha)*(aero['Cn']*sin(alpha + beta)**3 + aero['Ct']) - aero['Cn']*cos(alpha + beta)*sin(alpha + beta)**2*sin(alpha)
-
                     # loadedBCEdges[el, 3] = diameter * rho * V_magnitude_average_over_line_length**2
-                    RHS[dof1] += loadStep * loadedBCEdges[el, 3] * Cx * dz / 4
-                    RHS[dof2] += loadStep * loadedBCEdges[el, 3] * Cx * dz / 4
-
-                    # shearX
-                    # dx = fabs(X[int(loadedBCEdges[el, 2])] - X[int(loadedBCEdges[el, 1])])
-
-                    # RHS[dof1] += loadStep * dx * loadedBCEdges[el, 3] / 2
-                    # RHS[dof2] += loadStep * dx * loadedBCEdges[el, 3] / 2
-
-                elif loadedBCEdges[el, 0] == 5: # aeroY
-
-                    dof1 = 3 * int(loadedBCEdges[el, 1] + 1) - 2
-                    dof2 = 3 * int(loadedBCEdges[el, 2] + 1) - 2
-
-                    dy = fabs(Y[int(loadedBCEdges[el, 2])] - Y[int(loadedBCEdges[el, 1])])
-
-                    RHS[dof1] += loadStep * dy * loadedBCEdges[el, 3] / 2
-                    RHS[dof2] += loadStep * dy * loadedBCEdges[el, 3] / 2
-
-                elif loadedBCEdges[el, 0] == 6: # aeroZ
-
-                    dof1 = 3 * int(loadedBCEdges[el, 1] + 1) - 1
-                    dof2 = 3 * int(loadedBCEdges[el, 2] + 1) - 1
-
-                    dz = abs(Z[int(loadedBCEdges[el, 2])] - Z[int(loadedBCEdges[el, 1])])
-                    dx = abs(X[int(loadedBCEdges[el, 2])] - X[int(loadedBCEdges[el, 1])])
-
-                    alpha = aero['AoA']*np.pi/180
-                    
-                    if dx < 0 and dz > 0:
-                        beta = np.arctan2(dz,-dx)
-                    elif dx > 0 and dz < 0:
-                        beta = np.arctan2(-dz,dx)
-                    elif dx > 0 and dz > 0:
-                        beta = np.arctan2(dz,-dx)
-                    elif dx < 0 and dz < 0:
-                        beta = np.arctan2(-dz,dx)
-                    elif dz == 0:
-                        beta = 0
-                    else:
-                        beta = np.pi / 2
-
-                    # aero coefficient Z
-                    Cz = sin(alpha)*(aero['Cn']*sin(alpha + beta)**3 + aero['Ct']) + aero['Cn']*cos(alpha + beta)*sin(alpha + beta)**2*cos(alpha)
-
-                    # loadedBCEdges[el, 3] = diameter * rho * V_magnitude_average_over_line_length**2
-                    RHS[dof1] += loadStep * loadedBCEdges[el, 3] * Cz * dx / 4
-                    RHS[dof2] += loadStep * loadedBCEdges[el, 3] * Cz * dx / 4
-
-                    # dof1 = 3 * int(loadedBCEdges[el, 1] + 1) - 1
-                    # dof2 = 3 * int(loadedBCEdges[el, 2] + 1) - 1
-
-                    # dy = fabs(Z[int(loadedBCEdges[el, 2])] - Z[int(loadedBCEdges[el, 1])])
-
-                    # RHS[dof1] += loadStep * dy * loadedBCEdges[el, 3] / 2
-                    # RHS[dof2] += loadStep * dy * loadedBCEdges[el, 3] / 2
+                    RHS[allDofCable[0]] += loadStep * Cx * l * loadedBCEdges[el, 3] / 2  # x1
+                    RHS[allDofCable[1]] += loadStep * Cy * l * loadedBCEdges[el, 3] / 2  # y1
+                    RHS[allDofCable[2]] += loadStep * Cz * l * loadedBCEdges[el, 3] / 2  # z1
+                    RHS[allDofCable[3]] += loadStep * Cx * l * loadedBCEdges[el, 3] / 2  # x2
+                    RHS[allDofCable[4]] += loadStep * Cy * l * loadedBCEdges[el, 3] / 2  # y2
+                    RHS[allDofCable[5]] += loadStep * Cz * l * loadedBCEdges[el, 3] / 2  # z2
 
                 # # constant load in x, y and z-direction with Sx, Sy, Sz magnitude (FSI in BC definition)
                 # elif loadedBCEdges[el, 0] == 4:

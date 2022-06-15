@@ -41,8 +41,8 @@ cdef object sparsityPattern(int [:, ::1] NCable,
     cdef:
         double [:] data = np.ones(dim * dim * (9 * nelemsMem + 4 * nelemsCable), dtype=np.double)
 
-        unsigned int [:] row = np.empty(dim * dim * (9 * nelemsMem + 4 * nelemsCable), dtype=np.uintc)
-        unsigned int [:] col = np.empty(dim * dim * (9 * nelemsMem + 4 * nelemsCable), dtype=np.uintc)
+        unsigned int [:] row = np.zeros(dim * dim * (9 * nelemsMem + 4 * nelemsCable), dtype=np.uintc)
+        unsigned int [:] col = np.zeros(dim * dim * (9 * nelemsMem + 4 * nelemsCable), dtype=np.uintc)
 
         unsigned int [:] allDofCable = np.empty(2 * dim, dtype=np.uintc)
         unsigned int [:] allDofMem = np.empty(3 * dim, dtype=np.uintc)
@@ -217,6 +217,7 @@ cdef int addRows(double [:] data,
 
         multiply_vs(sumRowWithDiag, lam / 2, M)
 
+
     else:
         raise Exception("no method defined for DR."
                         "Choose either Barnes, Alamatian, or KDR1")
@@ -230,16 +231,23 @@ cdef int addRows(double [:] data,
 
         if dim == 2:
 
-            # Set zero mass entries to
-            for i in range(ndof):
+            ind = 0
+            for i in range(ndof/2):
+                alphaSqrt = fmax(M[ind], M[ind+1])
+                M[ind] = alphaSqrt
+                M[ind+1] = alphaSqrt
+                ind += 2
+            # print(np.asarray(M))
+            # # Set zero mass entries to
+            # for i in range(ndof/2):
 
-                # set mass to largest nodal value
-                if fabs(M[i]) == 0:
-
-                    if (i / 2) % 2:  # x
-                        M[i] = M[i + 1]
-                    else:  # y
-                        M[i] = M[i - 1]
+            #     # set mass to largest nodal value
+            #     if fabs(M[i]) == 0:
+                    
+            #         if (i / 2) % 2 and i != ndof:  # x
+            #             M[i] = M[i + 1]
+            #         else:  # y
+            #             M[i] = M[i - 1]
 
         elif dim == 3:
 

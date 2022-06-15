@@ -292,12 +292,14 @@ cdef int readMsh(object data) except -1:
                             IDmap[int(args[1]) - 1] = 20
                         elif data.elStruc[name]["type"] == "edgeShear":
                             IDmap[int(args[1]) - 1] = 21
-                        elif data.elStruc[name]["type"] == "pressure":
+                        elif data.elStruc[name]["type"] == "aero":
                             IDmap[int(args[1]) - 1] = 22
+                        elif data.elStruc[name]["type"] == "pressure":
+                            IDmap[int(args[1]) - 1] = 23
                             pressureID.append(int(args[1]))
                             pressureMag.append(data.elStruc[name]["pressure"])
                         elif data.elStruc[name]["type"] == "damper":
-                            IDmap[int(args[1]) - 1] = 23
+                            IDmap[int(args[1]) - 1] = 24
                         else:
                             raise Exception("No valid LOAD type found.")
                     elif data.elStruc[name]["set"] == "SET":
@@ -500,9 +502,12 @@ cdef int readMsh(object data) except -1:
                         if j == 21:  # edgeShear
                             f = data.elStruc[bnames[int(args[3])]]["edgeShear"]
                             loadedBCEdgesRead.append([8, i, k, f])
-                        if j == 22:  # FSI
-                            loadedBCEdgesRead.append([9, i, k, 0])
-                        if j == 23:  # pre_u
+                        if j == 22:  # aero
+                            f = data.elStruc[bnames[int(args[3])]]["aero"]
+                            loadedBCEdgesRead.append([9, i, k, f])
+                        if j == 23:  # FSI
+                            loadedBCEdgesRead.append([10, i, k, 0])
+                        if j == 24:  # pre_u
                             if "pre_u" in data.elStruc[bnames[int(args[3])]].keys():
                                 pre_u_read.append([i,
                                                    data.elStruc[bnames[int(args[3])]]["pre_u"]])
@@ -523,7 +528,7 @@ cdef int readMsh(object data) except -1:
                         k = int(args[6]) - 1
                         q = int(args[7]) - 1
 
-                        if j > 22:
+                        if j > 24:
                             # save [physical ID, node 1, node 2, node 3]
                             elSet3.append([int(args[3]), i, k, q])
                         elif j == 0 or j == 1:  # M == 0, MW == 1

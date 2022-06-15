@@ -31,6 +31,12 @@ git clone https://github.com/pthedens/mem4py.git
 "python setup.py build install"
 ```
 
+or using pip
+
+```
+"pip install -e ."
+```
+
 ## Windows 
 ### Compiler 
 Install a [cython compatible compiler (Visual Studio/Windows SDK C/C++)](https://github.com/cython/cython/wiki/CythonExtensionsOnWindows#using-windows-sdk-cc-compiler-works-for-all-python-versions) if you don't already have a C/C++ compiler.

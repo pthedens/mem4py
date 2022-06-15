@@ -83,6 +83,7 @@ class Mem4py:
         self.nelemsBeam = 0
         self.strainEnergy = 0.
         self.KE = 0.
+        self.IE = 0.
 
         self.X0 = []
         self.Y0 = []
@@ -192,6 +193,8 @@ class Mem4py:
             self.autoWrite = True
         elif problem["autoWrite"] is False:
             self.autoWrite = False
+        else:
+            self.autoWrite = True
 
         # write_each_peak, if true write vtk when energy peak is detected in solve() KDR
         if not "write_each_peak" in problem:
@@ -515,7 +518,9 @@ class Mem4py:
 
         # aero input
         self.aero = dict()
-        self.aero['AoA'] = 0
+        self.aero['Vx'] = []
+        self.aero['Vy'] = []
+        self.aero['Vz'] = []
         self.aero['Cn'] = 0
         self.aero['Ct'] = 0
 
