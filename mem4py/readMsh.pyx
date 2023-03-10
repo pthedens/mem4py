@@ -367,7 +367,7 @@ cdef int readMsh(object data) except -1:
                             fixedBCNodesRead.append(3)
                             fixedBCNodesRead.append(i)
                         elif j == 10:  # fixYZ
-                            fixedBCNodesRead.append(1)
+                            fixedBCNodesRead.append(2)
                             fixedBCNodesRead.append(i)
                             fixedBCNodesRead.append(3)
                             fixedBCNodesRead.append(i)
